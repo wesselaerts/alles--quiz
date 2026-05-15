@@ -1,0 +1,4733 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Kamelenrace · Pubquiz met een twist</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300..800&family=Outfit:wght@300;400;500;600;700;800&family=Caveat:wght@600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+<style>
+  :root {
+    --sand-50:  #FBF1E4;
+    --sand-100: #F5E5CC;
+    --sand-200: #ECD3A6;
+    --sand-300: #DDB97A;
+    --sand-400: #C99A4F;
+    --terracotta: #C44536;
+    --terracotta-dark: #97312A;
+    --burnt-orange: #D2691E;
+    --teal-deep: #0F4C5C;
+    --teal: #1B6F84;
+    --gold: #FFB627;
+    --gold-soft: #FFD66B;
+    --pink: #F4538A;
+    --green: #7FB069;
+    --ink: #2D1B0E;
+    --ink-soft: #5C4632;
+    --cream: #FFF9EE;
+    --shadow: 0 8px 30px rgba(45, 27, 14, 0.12);
+    --shadow-lg: 0 20px 60px rgba(45, 27, 14, 0.2);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    height: 100%;
+    font-family: 'Outfit', system-ui, sans-serif;
+    color: var(--ink);
+    background: var(--sand-50);
+    overflow-x: hidden;
+  }
+
+  body {
+    background:
+      radial-gradient(ellipse at top left, rgba(255,182,39,0.15), transparent 50%),
+      radial-gradient(ellipse at bottom right, rgba(196,69,54,0.12), transparent 50%),
+      linear-gradient(180deg, #FBF1E4 0%, #F5E5CC 100%);
+    min-height: 100vh;
+  }
+
+  /* Subtle noise overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1;
+    opacity: 0.4;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.55  0 0 0 0 0.42  0 0 0 0 0.27  0 0 0 0.08 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  .app {
+    position: relative;
+    z-index: 2;
+    min-height: 100vh;
+    padding: 24px;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+
+  /* Typography */
+  h1, h2, h3, .display {
+    font-family: 'Bricolage Grotesque', serif;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1.0;
+  }
+
+  .display-xl {
+    font-family: 'Bricolage Grotesque', serif;
+    font-weight: 800;
+    font-size: clamp(48px, 7vw, 96px);
+    letter-spacing: -0.04em;
+    line-height: 0.92;
+  }
+
+  .handwritten {
+    font-family: 'Caveat', cursive;
+    font-weight: 700;
+  }
+
+  /* Buttons */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 14px 28px;
+    font-family: 'Outfit', sans-serif;
+    font-weight: 600;
+    font-size: 16px;
+    border: none;
+    border-radius: 14px;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    text-decoration: none;
+    color: inherit;
+  }
+
+  .btn-primary {
+    background: var(--terracotta);
+    color: var(--cream);
+    box-shadow: 0 4px 0 var(--terracotta-dark), var(--shadow);
+  }
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 0 var(--terracotta-dark), var(--shadow-lg); }
+  .btn-primary:active { transform: translateY(2px); box-shadow: 0 2px 0 var(--terracotta-dark); }
+
+  .btn-secondary {
+    background: var(--cream);
+    color: var(--ink);
+    box-shadow: 0 4px 0 var(--sand-200), var(--shadow);
+    border: 2px solid var(--sand-200);
+  }
+  .btn-secondary:hover { transform: translateY(-2px); }
+  .btn-secondary:active { transform: translateY(2px); box-shadow: 0 2px 0 var(--sand-200); }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--ink-soft);
+    border: 2px dashed var(--sand-300);
+  }
+  .btn-ghost:hover { background: var(--cream); color: var(--ink); }
+
+  .btn-gold {
+    background: var(--gold);
+    color: var(--ink);
+    box-shadow: 0 4px 0 #c98e1a, var(--shadow);
+  }
+  .btn-gold:hover { transform: translateY(-2px); }
+
+  .btn-large { padding: 20px 40px; font-size: 20px; border-radius: 18px; }
+
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
+
+  /* Cards */
+  .card {
+    background: var(--cream);
+    border-radius: 20px;
+    padding: 28px;
+    box-shadow: var(--shadow);
+    border: 1px solid rgba(196, 154, 79, 0.2);
+  }
+
+  .card-glow {
+    background: linear-gradient(135deg, var(--cream) 0%, #FFF9EE 100%);
+    border: 1px solid var(--sand-200);
+    box-shadow: var(--shadow-lg);
+  }
+
+  /* Inputs */
+  .input {
+    width: 100%;
+    padding: 14px 18px;
+    font-family: 'Outfit', sans-serif;
+    font-size: 16px;
+    border: 2px solid var(--sand-200);
+    border-radius: 12px;
+    background: var(--cream);
+    color: var(--ink);
+    transition: all 0.2s;
+  }
+  .input:focus {
+    outline: none;
+    border-color: var(--terracotta);
+    box-shadow: 0 0 0 4px rgba(196,69,54,0.15);
+  }
+
+  /* Slider */
+  .slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 14px;
+    background: linear-gradient(90deg, var(--sand-200), var(--sand-300));
+    border-radius: 8px;
+    outline: none;
+  }
+  .slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--terracotta);
+    border: 4px solid var(--cream);
+    cursor: pointer;
+    box-shadow: var(--shadow);
+    transition: transform 0.15s;
+  }
+  .slider::-webkit-slider-thumb:hover { transform: scale(1.15); }
+  .slider::-moz-range-thumb {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: var(--terracotta);
+    border: 4px solid var(--cream);
+    cursor: pointer;
+  }
+
+  /* Difficulty selector */
+  .diff-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+  }
+  .diff-btn {
+    background: var(--sand-50);
+    border: 2px solid var(--sand-200);
+    border-radius: 14px;
+    padding: 14px 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+    font-family: inherit;
+  }
+  .diff-btn:hover {
+    transform: translateY(-2px);
+    border-color: var(--sand-400);
+    box-shadow: 0 4px 12px rgba(45,27,14,0.08);
+  }
+  .diff-btn.active {
+    background: linear-gradient(135deg, var(--gold-soft), var(--gold));
+    border-color: var(--terracotta);
+    box-shadow: 0 6px 16px rgba(196,69,54,0.25);
+    transform: translateY(-2px);
+  }
+  .diff-emoji { font-size: 30px; line-height: 1; margin-bottom: 6px; }
+  .diff-name {
+    font-family: 'Bricolage Grotesque', serif;
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--ink);
+    margin-bottom: 4px;
+  }
+  .diff-desc {
+    font-size: 11px;
+    color: var(--ink-soft);
+    line-height: 1.3;
+  }
+  @media (max-width: 720px) {
+    .diff-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  /* Mode tag selector */
+  .modes-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  .mode-tag {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    background: var(--sand-50);
+    border: 2px solid var(--sand-200);
+    border-radius: 12px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 14px;
+    color: var(--ink-soft);
+    text-align: left;
+    transition: all 0.15s;
+  }
+  .mode-tag:hover { border-color: var(--sand-400); }
+  .mode-tag.active {
+    background: var(--cream);
+    border-color: var(--terracotta);
+    color: var(--ink);
+    box-shadow: 0 4px 12px rgba(196,69,54,0.15);
+  }
+  .mode-emoji { font-size: 22px; }
+  .mode-label { flex: 1; font-weight: 600; }
+  .mode-check {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: var(--terracotta);
+    color: var(--cream);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .mode-tag.active .mode-check { opacity: 1; }
+  .mode-tag:not(.active) {
+    background: var(--sand-50);
+    opacity: 0.6;
+  }
+
+  /* ===================== RACE TRACK — 3D DIORAMA ===================== */
+  /* Outer wrapper provides 3D perspective and the wooden-booth frame.
+     The track itself is tilted backward so we look down into the scene
+     from a slight angle, like peering into a fairground attraction. */
+  .race-stage {
+    perspective: 1400px;
+    perspective-origin: 50% 30%;
+    margin-bottom: 28px;
+    position: relative;
+  }
+
+  .race-track {
+    /* Sky-to-dune gradient */
+    background:
+      linear-gradient(180deg,
+        #4A7FB5 0%,
+        #87CEEB 22%,
+        #FFE4B5 55%,
+        #E8B26A 75%,
+        #B98447 100%);
+    border-radius: 26px;
+    padding: 28px 18px 20px 18px;
+    position: relative;
+    overflow: hidden;
+    border: 5px solid transparent;
+    background-clip: padding-box;
+
+    /* The 3D tilt — back edge recedes, front edge near viewer */
+    transform: rotateX(18deg) rotateY(-3deg);
+    transform-origin: 50% 100%;
+    transform-style: preserve-3d;
+
+    box-shadow:
+      0 30px 60px -20px rgba(45,27,14,0.55),
+      0 12px 22px rgba(45,27,14,0.25),
+      inset 0 2px 0 rgba(255,255,255,0.4),
+      inset 0 -8px 30px rgba(120,60,20,0.3);
+  }
+
+  /* Wooden booth frame around the whole thing */
+  .race-stage::before {
+    content: '';
+    position: absolute;
+    inset: -14px;
+    border-radius: 34px;
+    background:
+      linear-gradient(135deg, #8B5A2B, #6B3F1A 50%, #8B5A2B);
+    z-index: -1;
+    box-shadow:
+      0 20px 50px rgba(45,27,14,0.4),
+      inset 0 2px 4px rgba(255,210,160,0.4),
+      inset 0 -3px 8px rgba(0,0,0,0.4);
+    transform: rotateX(18deg) rotateY(-3deg) translateZ(-20px);
+    transform-origin: 50% 100%;
+  }
+
+  /* Decorative bunting flags above the booth */
+  .race-stage::after {
+    content: '';
+    position: absolute;
+    top: -8px;
+    left: 6%;
+    right: 6%;
+    height: 18px;
+    background:
+      repeating-linear-gradient(
+        90deg,
+        var(--terracotta) 0,
+        var(--terracotta) 22px,
+        var(--gold) 22px,
+        var(--gold) 44px,
+        var(--teal) 44px,
+        var(--teal) 66px,
+        var(--cream) 66px,
+        var(--cream) 88px);
+    clip-path: polygon(
+      0% 0%, 100% 0%,
+      100% 35%, 96% 100%, 92% 35%,
+      88% 35%, 84% 100%, 80% 35%,
+      76% 35%, 72% 100%, 68% 35%,
+      64% 35%, 60% 100%, 56% 35%,
+      52% 35%, 48% 100%, 44% 35%,
+      40% 35%, 36% 100%, 32% 35%,
+      28% 35%, 24% 100%, 20% 35%,
+      16% 35%, 12% 100%, 8% 35%,
+      4% 35%, 0% 35%);
+    transform: rotateX(18deg) rotateY(-3deg) translateZ(8px);
+    transform-origin: 50% 100%;
+    filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3));
+    pointer-events: none;
+  }
+
+  /* Sun, glowing */
+  .race-track::before {
+    content: '';
+    position: absolute;
+    top: 8px;
+    right: 12%;
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, #FFE066, #FFB627 60%, #E89117 100%);
+    box-shadow:
+      0 0 60px rgba(255, 182, 39, 0.7),
+      0 0 120px rgba(255, 182, 39, 0.35);
+    z-index: 0;
+    animation: sun-pulse 4s ease-in-out infinite;
+  }
+
+  @keyframes sun-pulse {
+    0%, 100% { box-shadow: 0 0 60px rgba(255,182,39,0.7), 0 0 120px rgba(255,182,39,0.35); }
+    50%      { box-shadow: 0 0 80px rgba(255,182,39,0.9), 0 0 160px rgba(255,182,39,0.5); }
+  }
+
+  /* Distant dunes silhouette */
+  .race-track::after {
+    content: '';
+    position: absolute;
+    top: 38%;
+    left: 0; right: 0;
+    height: 60px;
+    background:
+      radial-gradient(ellipse 200px 40px at 15% 100%, #C99A4F, transparent 70%),
+      radial-gradient(ellipse 280px 50px at 50% 100%, #B98447, transparent 70%),
+      radial-gradient(ellipse 240px 45px at 80% 100%, #C99A4F, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.7;
+  }
+
+  .lane {
+    position: relative;
+    height: 60px;
+    margin-bottom: 5px;
+    padding: 0 10px;
+    background:
+      linear-gradient(180deg,
+        rgba(255,249,238,0.45) 0%,
+        rgba(255,228,181,0.35) 100%);
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.5),
+      inset 0 -2px 6px rgba(120,60,20,0.15),
+      0 2px 4px rgba(0,0,0,0.06);
+    z-index: 1;
+  }
+  .lane:last-child { margin-bottom: 0; }
+
+  /* Sandy tread marks per lane */
+  .lane-track {
+    position: absolute;
+    inset: 0;
+    background-image:
+      repeating-linear-gradient(90deg,
+        transparent 0,
+        transparent 9.4%,
+        rgba(110,68,30,0.20) 9.4%,
+        rgba(110,68,30,0.20) 10%);
+    opacity: 0.7;
+  }
+
+  .lane-label {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-family: 'Bricolage Grotesque', serif;
+    font-weight: 700;
+    font-size: 13px;
+    z-index: 2;
+    pointer-events: none;
+    background: var(--cream);
+    padding: 4px 10px;
+    border-radius: 8px;
+    box-shadow:
+      0 2px 0 rgba(0,0,0,0.12),
+      0 4px 10px rgba(0,0,0,0.18);
+    border: 2px solid currentColor;
+    white-space: nowrap;
+    max-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .camel {
+    position: absolute;
+    top: 50%;
+    font-size: 40px;
+    line-height: 1;
+    transition: left 1.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    z-index: 3;
+    filter:
+      drop-shadow(2px 6px 4px rgba(0,0,0,0.4))
+      drop-shadow(0 0 1px rgba(0,0,0,0.3));
+    animation: camel-idle 2.4s ease-in-out infinite;
+    transform-origin: 50% 100%;
+    will-change: transform, left;
+  }
+
+  /* Subtle idle bobbing — like resting in the heat */
+  @keyframes camel-idle {
+    0%, 100% { transform: translate(-50%, -50%) translateY(0) rotate(-1.5deg); }
+    50%      { transform: translate(-50%, -54%) translateY(-2px) rotate(1.5deg); }
+  }
+
+  .camel.moving { animation: camel-trot 0.45s ease-in-out infinite; }
+  @keyframes camel-trot {
+    0%, 100% { transform: translate(-50%, -50%) translateY(0)   rotate(-4deg); }
+    25%      { transform: translate(-50%, -62%) translateY(-8px) rotate(3deg); }
+    50%      { transform: translate(-50%, -50%) translateY(-2px) rotate(-2deg); }
+    75%      { transform: translate(-50%, -60%) translateY(-6px) rotate(4deg); }
+  }
+
+  .finish-line {
+    position: absolute;
+    top: 14px;
+    bottom: 14px;
+    right: 22px;
+    width: 14px;
+    background-image:
+      repeating-linear-gradient(0deg, #2D1B0E 0, #2D1B0E 10px, #FFF9EE 10px, #FFF9EE 20px);
+    border-radius: 4px;
+    z-index: 1;
+    box-shadow:
+      0 2px 6px rgba(0,0,0,0.35),
+      inset 0 0 2px rgba(255,255,255,0.5);
+  }
+
+  .finish-flag {
+    position: absolute;
+    top: -4px;
+    right: 12px;
+    font-size: 30px;
+    z-index: 4;
+    transform: rotate(8deg);
+    filter: drop-shadow(0 3px 4px rgba(0,0,0,0.35));
+    animation: flag-wave 1.5s ease-in-out infinite;
+  }
+
+  @keyframes flag-wave {
+    0%, 100% { transform: rotate(8deg) scaleX(1); }
+    50%      { transform: rotate(12deg) scaleX(0.92); }
+  }
+
+  .race-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+    position: relative;
+    z-index: 5;
+    padding: 0 6px;
+  }
+
+  .round-badge {
+    background: var(--ink);
+    color: var(--cream);
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .race-title {
+    font-family: 'Bricolage Grotesque', serif;
+    font-weight: 800;
+    color: var(--ink);
+    font-size: 18px;
+  }
+
+  /* Multiple choice options */
+  .mc-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+    margin-top: 18px;
+  }
+
+  .mc-option {
+    padding: 18px 20px;
+    background: var(--cream);
+    border: 2px solid var(--sand-200);
+    border-radius: 14px;
+    font-size: 17px;
+    font-weight: 500;
+    font-family: 'Outfit', sans-serif;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    text-align: left;
+  }
+  .mc-option:hover:not(:disabled):not(.revealed) {
+    border-color: var(--terracotta);
+    background: #FFF4E6;
+    transform: translateX(2px);
+  }
+  .mc-option .letter {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: var(--sand-100);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-family: 'Bricolage Grotesque', serif;
+    flex-shrink: 0;
+  }
+  .mc-option.correct {
+    border-color: var(--green);
+    background: #E8F5DE;
+  }
+  .mc-option.correct .letter { background: var(--green); color: white; }
+  .mc-option.incorrect {
+    border-color: var(--terracotta);
+    background: #FCE8E5;
+  }
+  .mc-option.incorrect .letter { background: var(--terracotta); color: white; }
+  .mc-option:disabled { cursor: not-allowed; }
+
+  /* Round content area */
+  .round-stage {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .question-block {
+    text-align: center;
+  }
+
+  .question-text {
+    font-family: 'Bricolage Grotesque', serif;
+    font-weight: 700;
+    font-size: clamp(24px, 3.5vw, 36px);
+    line-height: 1.15;
+    color: var(--ink);
+    margin: 10px 0 8px;
+  }
+
+  .question-subtext {
+    color: var(--ink-soft);
+    font-size: 16px;
+    margin-bottom: 10px;
+  }
+
+  /* Round type chip */
+  .round-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--ink);
+    color: var(--cream);
+    padding: 8px 16px;
+    border-radius: 999px;
+    font-weight: 600;
+    font-size: 13px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  /* Team turn banner */
+  .team-banner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    padding: 16px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, var(--sand-100), var(--cream));
+    border: 2px dashed var(--sand-300);
+    margin-bottom: 14px;
+  }
+  .team-banner-emoji {
+    font-size: 36px;
+  }
+  .team-banner-text {
+    font-family: 'Bricolage Grotesque', serif;
+    font-weight: 700;
+    font-size: 22px;
+  }
+  .team-banner-text small {
+    display: block;
+    font-family: 'Outfit', sans-serif;
+    font-weight: 400;
+    color: var(--ink-soft);
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  /* Flag */
+  .flag-display {
+    width: 100%;
+    max-width: 320px;
+    margin: 0 auto;
+    aspect-ratio: 3/2;
+    object-fit: cover;
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    border: 3px solid var(--cream);
+  }
+
+  /* Logo display */
+  .logo-display {
+    width: 180px;
+    height: 180px;
+    margin: 0 auto;
+    background: var(--cream);
+    border-radius: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: var(--shadow);
+    padding: 24px;
+    border: 2px solid var(--sand-200);
+  }
+  .logo-display img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+  }
+
+  /* Person/photo */
+  .person-photo {
+    width: 220px;
+    height: 220px;
+    margin: 0 auto;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 6px solid var(--cream);
+    box-shadow: var(--shadow);
+  }
+
+  /* Slider rounds */
+  .slider-input-container {
+    background: var(--cream);
+    border-radius: 16px;
+    padding: 24px;
+    margin-top: 20px;
+    border: 2px solid var(--sand-200);
+  }
+
+  .slider-value {
+    text-align: center;
+    font-family: 'Bricolage Grotesque', serif;
+    font-weight: 800;
+    font-size: 48px;
+    color: var(--terracotta);
+    margin-bottom: 16px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .slider-range {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 12px;
+    font-size: 13px;
+    color: var(--ink-soft);
+    font-weight: 500;
+  }
+
+  .team-slider-row {
+    display: grid;
+    grid-template-columns: 140px 1fr 90px;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 14px;
+  }
+
+  .team-slider-row:last-child { margin-bottom: 0; }
+
+  .team-name-cell {
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 15px;
+  }
+
+  /* Timer */
+  .timer-bar {
+    height: 8px;
+    background: var(--sand-200);
+    border-radius: 999px;
+    overflow: hidden;
+    margin-bottom: 16px;
+  }
+  .timer-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--green), var(--gold), var(--terracotta));
+    width: 100%;
+    transition: width 1s linear;
+  }
+
+  /* World Map */
+  #worldMap {
+    height: 480px;
+    border-radius: 16px;
+    border: 3px solid var(--cream);
+    box-shadow: var(--shadow);
+    background: #1a2940;
+  }
+  /* Layer toggle bar */
+  .map-layer-bar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+    justify-content: center;
+  }
+  .map-layer-btn {
+    background: var(--sand-100);
+    border: 2px solid var(--sand-300);
+    border-radius: 999px;
+    padding: 7px 16px;
+    font-family: inherit;
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--ink-soft);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .map-layer-btn:hover { background: var(--cream); }
+  .map-layer-btn.active {
+    background: var(--ink);
+    color: var(--cream);
+    border-color: var(--ink);
+  }
+  /* Ephemeral click ghost — confirms click without revealing it */
+  .map-click-ghost {
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0) 70%);
+    border: 2px solid rgba(255,255,255,0.8);
+    animation: ghost-pulse 0.7s ease-out forwards;
+  }
+  @keyframes ghost-pulse {
+    0%   { transform: scale(0.4); opacity: 1; }
+    100% { transform: scale(2.5); opacity: 0; }
+  }
+
+  /* Drawing canvas */
+  .drawing-board {
+    background: white;
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+    border: 3px solid var(--cream);
+    overflow: hidden;
+    margin: 0 auto;
+    display: block;
+    cursor: crosshair;
+  }
+
+  .draw-controls {
+    display: flex;
+    gap: 10px;
+    margin-top: 14px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .color-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 3px solid var(--cream);
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  }
+  .color-btn.active { transform: scale(1.15); border-color: var(--ink); }
+
+  /* 30 Seconds */
+  .word-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 20px 0;
+  }
+  .word-item {
+    background: var(--cream);
+    padding: 16px 22px;
+    border-radius: 12px;
+    border: 2px solid var(--sand-200);
+    font-family: 'Bricolage Grotesque', serif;
+    font-weight: 700;
+    font-size: 22px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .word-item.correct {
+    background: #E8F5DE;
+    border-color: var(--green);
+  }
+  .word-item.skipped {
+    background: #FCE8E5;
+    border-color: var(--terracotta);
+    opacity: 0.7;
+  }
+  .word-item-actions {
+    display: flex;
+    gap: 8px;
+  }
+  .word-icon-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .word-icon-btn.ok { background: var(--green); color: white; }
+  .word-icon-btn.no { background: var(--terracotta); color: white; }
+
+  /* 30 Seconds: word→team attribution */
+  .attrib-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-width: 700px;
+    margin: 0 auto;
+  }
+  .attrib-row {
+    background: var(--sand-50);
+    border: 2px solid var(--sand-200);
+    border-radius: 14px;
+    padding: 12px 16px;
+  }
+  .attrib-word {
+    font-family: 'Bricolage Grotesque', serif;
+    font-weight: 700;
+    font-size: 18px;
+    color: var(--ink);
+    margin-bottom: 8px;
+  }
+  .attrib-teams {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .attrib-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--cream);
+    border: 2px solid;
+    border-radius: 999px;
+    padding: 5px 12px;
+    font-family: inherit;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .attrib-pill:hover { transform: translateY(-1px); }
+  .attrib-pill.active {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  }
+
+  /* Popularity (Wikipedia) round */
+  .pop-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 12px;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+  .pop-option {
+    position: relative;
+    background: var(--cream);
+    border: 2px solid var(--sand-200);
+    border-radius: 14px;
+    padding: 16px 14px;
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--ink);
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.15s;
+    min-height: 60px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  .pop-option:hover:not(:disabled) {
+    transform: translateY(-2px);
+    border-color: var(--terracotta);
+    box-shadow: 0 6px 16px rgba(196,69,54,0.18);
+  }
+  .pop-option.picked {
+    cursor: default;
+    opacity: 0.85;
+  }
+  .pop-option-label { font-size: 16px; }
+  .pop-option-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    color: white;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 9px;
+    border-radius: 999px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  }
+  .pop-loader {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--cream);
+    padding: 12px 20px;
+    border-radius: 999px;
+    font-size: 15px;
+    color: var(--ink-soft);
+    border: 2px solid var(--sand-200);
+  }
+  .pop-spinner {
+    width: 22px; height: 22px;
+    border: 3px solid var(--sand-200);
+    border-top-color: var(--terracotta);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Ranking round */
+  .rank-wrap {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 22px;
+    max-width: 900px;
+    margin: 0 auto;
+    align-items: start;
+  }
+  @media (max-width: 720px) {
+    .rank-wrap { grid-template-columns: 1fr; }
+  }
+  .rank-options, .rank-slots {
+    background: var(--sand-50);
+    border: 2px dashed var(--sand-300);
+    border-radius: 16px;
+    padding: 16px;
+  }
+  .rank-options { display: flex; flex-direction: column; gap: 8px; }
+  .rank-options h4, .rank-slots h4 { margin: 0; }
+  .rank-option {
+    background: var(--cream);
+    border: 2px solid var(--sand-200);
+    border-radius: 12px;
+    padding: 12px 14px;
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--ink);
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.15s;
+  }
+  .rank-option:hover:not(:disabled) {
+    transform: translateX(4px);
+    border-color: var(--terracotta);
+    box-shadow: 0 4px 10px rgba(196,69,54,0.15);
+  }
+  .rank-option.placed, .rank-option:disabled {
+    background: var(--sand-200);
+    color: var(--ink-soft);
+    cursor: not-allowed;
+    opacity: 0.5;
+    text-decoration: line-through;
+  }
+  .rank-slots-list { display: flex; flex-direction: column; gap: 8px; }
+  .rank-slot {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--cream);
+    border: 2px solid var(--sand-200);
+    border-radius: 12px;
+    padding: 10px 12px;
+    min-height: 46px;
+  }
+  .rank-pos {
+    font-family: 'Bricolage Grotesque', serif;
+    font-weight: 700;
+    font-size: 18px;
+    color: var(--terracotta);
+    min-width: 30px;
+  }
+  .rank-slot-name { flex: 1; font-weight: 600; font-size: 14px; }
+  .rank-slot-empty { flex: 1; color: var(--sand-300); font-style: italic; }
+  .rank-slot-undo {
+    background: var(--sand-100);
+    border: 1px solid var(--sand-300);
+    border-radius: 50%;
+    width: 28px; height: 28px;
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--ink-soft);
+    line-height: 1;
+  }
+  .rank-slot-undo:hover { background: var(--terracotta); color: white; }
+
+  /* ===== Privacy curtain (used by map, slider, popularity, ranking) ===== */
+  .privacy-curtain {
+    background: linear-gradient(135deg, var(--cream), var(--sand-50));
+    border: 3px dashed var(--sand-400);
+    border-radius: 18px;
+    padding: 40px 28px;
+    text-align: center;
+    max-width: 520px;
+    margin: 20px auto;
+    box-shadow: var(--shadow);
+  }
+  .curtain-emoji { font-size: 64px; line-height: 1; margin-bottom: 8px; }
+  .curtain-name {
+    font-family: 'Bricolage Grotesque', serif;
+    font-weight: 700;
+    font-size: 28px;
+    margin-bottom: 6px;
+  }
+  .curtain-msg {
+    font-family: 'Caveat', cursive;
+    font-size: 24px;
+    color: var(--ink-soft);
+    margin-bottom: 20px;
+  }
+
+  /* ===== Turn timer ===== */
+  .turn-timer {
+    display: inline-block;
+    background: rgba(0,0,0,0.15);
+    color: white;
+    padding: 4px 12px;
+    border-radius: 999px;
+    font-weight: 700;
+    font-size: 14px;
+    font-variant-numeric: tabular-nums;
+    min-width: 50px;
+    text-align: center;
+  }
+  .turn-timer.urgent {
+    background: var(--terracotta);
+    animation: timer-pulse 0.6s ease-in-out infinite;
+  }
+  @keyframes timer-pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.12); }
+  }
+  .map-turn-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 22px;
+    border-radius: 999px;
+  }
+  .slider-timer { background: rgba(0,0,0,0.2); }
+  .rank-timer { background: var(--terracotta); color: white; margin-left: 12px; }
+
+  /* ===== Slider: solo mode (pass-the-laptop) ===== */
+  .slider-team-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border-radius: 12px 12px 0 0;
+    margin-bottom: 16px;
+  }
+  .team-slider-row-solo {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 0 8px;
+  }
+  .slider-big-val {
+    font-family: 'Bricolage Grotesque', serif;
+    font-weight: 700;
+    font-size: 24px;
+    color: var(--terracotta);
+    min-width: 160px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ===== Popularity solo head ===== */
+  .pop-team-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border-radius: 12px;
+    margin-bottom: 14px;
+  }
+
+  /* ===== Silhouette display ===== */
+  .silhouette-display {
+    background: linear-gradient(180deg, var(--sand-100), var(--sand-50));
+    border-radius: 18px;
+    padding: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 14px auto;
+    max-width: 480px;
+    min-height: 280px;
+    border: 2px solid var(--sand-200);
+    box-shadow: inset 0 2px 6px rgba(45,27,14,0.08);
+  }
+  .silhouette-img {
+    max-width: 100%;
+    max-height: 260px;
+    filter:
+      drop-shadow(0 4px 8px rgba(45,27,14,0.35))
+      brightness(0.18); /* solid dark silhouette regardless of source */
+  }
+  .silhouette-emoji-fallback {
+    font-size: 100px;
+    line-height: 1;
+  }
+
+  /* ===== Logo + flag emoji fallbacks ===== */
+  .logo-emoji-fallback {
+    font-size: 100px;
+    line-height: 1;
+    text-align: center;
+    padding: 30px;
+  }
+  .flag-emoji-fallback {
+    font-size: 140px !important;
+    line-height: 1 !important;
+    text-align: center !important;
+    padding: 20px !important;
+    background: none !important;
+    box-shadow: none !important;
+    border: none !important;
+    width: auto !important;
+    height: auto !important;
+  }
+
+  /* ===== German moustache man easter egg ===== */
+  .german-man-pop {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 99999;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    pointer-events: none;
+    animation: german-slide-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  }
+  .german-man-pop.leaving {
+    animation: german-slide-out 0.6s ease-in forwards;
+  }
+  @keyframes german-slide-in {
+    from { transform: translateX(140%) rotate(8deg); }
+    to   { transform: translateX(0) rotate(-3deg); }
+  }
+  @keyframes german-slide-out {
+    from { transform: translateX(0) rotate(-3deg); opacity: 1; }
+    to   { transform: translateX(140%) rotate(12deg); opacity: 0; }
+  }
+  .german-bubble {
+    background: var(--cream);
+    color: var(--ink);
+    font-family: 'Caveat', cursive;
+    font-size: 22px;
+    font-weight: 700;
+    padding: 8px 16px;
+    border-radius: 16px;
+    border: 2px solid var(--ink);
+    margin-bottom: 6px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+    position: relative;
+    transform: rotate(-3deg);
+  }
+  .german-bubble::after {
+    content: '';
+    position: absolute;
+    bottom: -10px;
+    right: 30px;
+    width: 0;
+    height: 0;
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+    border-top: 12px solid var(--ink);
+  }
+  .german-bubble::before {
+    content: '';
+    position: absolute;
+    bottom: -7px;
+    right: 32px;
+    width: 0;
+    height: 0;
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-top: 10px solid var(--cream);
+    z-index: 2;
+  }
+  .german-svg {
+    width: 120px;
+    height: 160px;
+    filter: drop-shadow(0 6px 14px rgba(0,0,0,0.35));
+    animation: german-bob 1.4s ease-in-out infinite;
+  }
+  @keyframes german-bob {
+    0%, 100% { transform: translateY(0) rotate(-2deg); }
+    50%      { transform: translateY(-6px) rotate(2deg); }
+  }
+
+  /* Results */
+  .result-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 16px;
+    background: var(--cream);
+    border-radius: 12px;
+    margin-bottom: 8px;
+    border: 1px solid var(--sand-200);
+  }
+  .result-row.winner {
+    background: linear-gradient(135deg, #FFF4CB, var(--gold-soft));
+    border-color: var(--gold);
+  }
+
+  /* Utilities */
+  .flex { display: flex; }
+  .flex-col { flex-direction: column; }
+  .gap-2 { gap: 8px; }
+  .gap-3 { gap: 12px; }
+  .gap-4 { gap: 16px; }
+  .gap-6 { gap: 24px; }
+  .items-center { align-items: center; }
+  .justify-center { justify-content: center; }
+  .justify-between { justify-content: space-between; }
+  .text-center { text-align: center; }
+  .mt-2 { margin-top: 8px; }
+  .mt-4 { margin-top: 16px; }
+  .mt-6 { margin-top: 24px; }
+  .mb-2 { margin-bottom: 8px; }
+  .mb-4 { margin-bottom: 16px; }
+  .mb-6 { margin-bottom: 24px; }
+  .w-full { width: 100%; }
+  .text-soft { color: var(--ink-soft); }
+  .text-pop { color: var(--terracotta); }
+  .grid { display: grid; }
+
+  /* Loading spinner */
+  .spinner {
+    border: 3px solid var(--sand-200);
+    border-top-color: var(--terracotta);
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Page transitions */
+  .fade-in {
+    animation: fadeIn 0.5s ease;
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .pop-in {
+    animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+  @keyframes popIn {
+    from { opacity: 0; transform: scale(0.8); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  /* Setup screen */
+  .hero {
+    text-align: center;
+    padding: 40px 20px 30px;
+  }
+  .hero-title {
+    font-family: 'Bricolage Grotesque', serif;
+    font-weight: 800;
+    font-size: clamp(56px, 9vw, 110px);
+    line-height: 0.9;
+    letter-spacing: -0.04em;
+    background: linear-gradient(135deg, var(--terracotta) 20%, var(--burnt-orange) 60%, var(--gold) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    margin-bottom: 12px;
+  }
+  .hero-sub {
+    font-family: 'Caveat', cursive;
+    font-size: clamp(22px, 3vw, 34px);
+    color: var(--ink-soft);
+    transform: rotate(-1deg);
+    margin-bottom: 8px;
+  }
+  .hero-meta {
+    color: var(--ink-soft);
+    font-size: 15px;
+    max-width: 540px;
+    margin: 0 auto;
+  }
+
+  /* Team list editor */
+  .team-row {
+    display: grid;
+    grid-template-columns: 64px 1fr 50px;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 10px;
+    padding: 10px;
+    background: var(--cream);
+    border-radius: 12px;
+    border: 2px solid var(--sand-200);
+  }
+  .team-emoji-pick {
+    font-size: 32px;
+    height: 50px;
+    background: var(--sand-100);
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Final winner */
+  .winner-screen {
+    text-align: center;
+    padding: 40px 20px;
+  }
+  .trophy-emoji {
+    font-size: clamp(80px, 12vw, 140px);
+    filter: drop-shadow(0 8px 20px rgba(255,182,39,0.6));
+  }
+  .winner-name {
+    font-family: 'Bricolage Grotesque', serif;
+    font-weight: 800;
+    font-size: clamp(40px, 6vw, 72px);
+    background: linear-gradient(135deg, var(--gold), var(--terracotta));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  /* Round-specific themes */
+  .theme-strip {
+    height: 6px;
+    border-radius: 999px;
+    margin-bottom: 16px;
+  }
+  .theme-math { background: linear-gradient(90deg, #6BB0FF, #2D7CD6); }
+  .theme-geo { background: linear-gradient(90deg, #7FB069, #4A8A3B); }
+  .theme-logo { background: linear-gradient(90deg, #F4538A, #C42E6B); }
+  .theme-revenue { background: linear-gradient(90deg, #FFB627, #D2691E); }
+  .theme-people { background: linear-gradient(90deg, #B57BFF, #8044D6); }
+  .theme-history { background: linear-gradient(90deg, #C44536, #97312A); }
+  .theme-knowledge { background: linear-gradient(90deg, #1B6F84, #0F4C5C); }
+  .theme-30s { background: linear-gradient(90deg, #FF6B6B, #C44536); }
+  .theme-draw { background: linear-gradient(90deg, #00BCD4, #006C7E); }
+  .theme-map { background: linear-gradient(90deg, #66D5A8, #228B57); }
+
+  /* Hint text */
+  .hint {
+    font-size: 13px;
+    color: var(--ink-soft);
+    font-style: italic;
+  }
+
+  /* Top nav */
+  .top-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    padding: 0 4px;
+  }
+
+  .nav-brand {
+    font-family: 'Bricolage Grotesque', serif;
+    font-weight: 800;
+    font-size: 20px;
+    color: var(--ink);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* Mobile responsive */
+  @media (max-width: 720px) {
+    .app { padding: 14px; }
+    .mc-grid { grid-template-columns: 1fr; }
+    .team-slider-row { grid-template-columns: 1fr; gap: 6px; }
+    .lane-label { font-size: 12px; padding: 2px 8px; max-width: 100px; }
+    .camel { font-size: 30px; }
+  }
+</style>
+</head>
+<body>
+<div class="app" id="app"></div>
+
+<!-- All game scripts will go here -->
+<script>
+// =============================================================================
+//  KAMELENRACE QUIZ — Vanilla JS Application
+//  All game state, data, and rendering live here.
+// =============================================================================
+
+/* ----------------------------- GAME STATE ----------------------------- */
+const State = {
+  screen: 'setup',       // setup | playing | roundResult | gameOver
+  teams: [],             // { name, emoji, color, position }
+  finishLine: 12,        // # of steps needed to win (4–50)
+  difficulty: 2,         // 1=Makkelijk, 2=Normaal, 3=Pittig, 4=Expert
+  enabledRounds: null,   // Set<string> of round keys (null = all)
+  roundNumber: 0,
+  currentTeamIndex: 0,   // For team-turn rounds
+  currentRound: null,    // round config object
+  roundQueue: [],        // upcoming round types
+  history: [],           // past rounds for "don't repeat too much" logic
+  // API cache
+  countries: null,
+  // Round-specific state
+  drawWord: null,
+  drawTeamIndex: 0,
+  sliderAnswers: {},     // teamIndex -> value
+  mapAnswers: {},        // teamIndex -> {lat, lng}
+  rankAnswers: {},       // teamIndex -> [orderedIds]
+  popAnswers: {},        // teamIndex -> optionId
+};
+
+/* --------------------------- TEAM EMOJI / COLOR ---------------------- */
+const TEAM_EMOJIS = ['🐪','🐎','🐫','🦒','🦓','🐘','🦏','🦛'];
+const TEAM_COLORS = ['#C44536','#1B6F84','#7FB069','#F4538A','#FFB627','#8044D6','#D2691E','#00BCD4'];
+
+/* ----------------------------- DATA ---------------------------------- */
+// Curated Dutch general knowledge questions (fallback / mix-in)
+const DUTCH_QUIZ = [
+  { q: "Wat is de langste rivier ter wereld?", o: ["Nijl","Amazone","Yangtze","Mississippi"], a: 0 },
+  { q: "Welk element heeft het atoomnummer 1?", o: ["Helium","Waterstof","Lithium","Zuurstof"], a: 1 },
+  { q: "Wie schilderde 'De Sterrennacht'?", o: ["Rembrandt","Picasso","Van Gogh","Monet"], a: 2 },
+  { q: "Hoeveel botten heeft een volwassen mens (gemiddeld)?", o: ["186","206","226","256"], a: 1 },
+  { q: "Welk land won het WK voetbal in 2022?", o: ["Frankrijk","Brazilië","Argentinië","Duitsland"], a: 2 },
+  { q: "Wat is het grootste orgaan van het menselijk lichaam?", o: ["Lever","Hersenen","Hart","Huid"], a: 3 },
+  { q: "In welk jaar viel de Berlijnse Muur?", o: ["1987","1989","1991","1993"], a: 1 },
+  { q: "Hoeveel spelers staan er per team op het veld bij voetbal?", o: ["9","10","11","12"], a: 2 },
+  { q: "Wat is de hoofdstad van Australië?", o: ["Sydney","Melbourne","Canberra","Perth"], a: 2 },
+  { q: "Welke planeet staat het dichtst bij de zon?", o: ["Venus","Mercurius","Aarde","Mars"], a: 1 },
+  { q: "Wie schreef 'Harry Potter'?", o: ["J.K. Rowling","Stephen King","Roald Dahl","George R.R. Martin"], a: 0 },
+  { q: "Welk dier is het symbool van Nederland?", o: ["Stier","Leeuw","Beer","Adelaar"], a: 1 },
+  { q: "Hoeveel zijden heeft een dodecagon?", o: ["10","11","12","14"], a: 2 },
+  { q: "Wat is de oudste universiteit van Nederland?", o: ["Universiteit van Amsterdam","Universiteit Utrecht","Universiteit Leiden","Universiteit Groningen"], a: 2 },
+  { q: "Welke kunstenaar sneed zijn oor af?", o: ["Rembrandt","Vermeer","Van Gogh","Mondriaan"], a: 2 },
+  { q: "Welk gas ademen planten in?", o: ["Zuurstof","Stikstof","CO2","Waterstof"], a: 2 },
+  { q: "Wat is de munteenheid van Japan?", o: ["Won","Yuan","Yen","Rupee"], a: 2 },
+  { q: "Op welk continent ligt Egypte?", o: ["Azië","Afrika","Europa","Australië"], a: 1 },
+  { q: "Welke zee ligt tussen Italië en Griekenland?", o: ["Adriatische Zee","Egeïsche Zee","Middellandse Zee","Zwarte Zee"], a: 0 },
+  { q: "Hoeveel kleuren heeft een regenboog?", o: ["5","6","7","8"], a: 2 },
+  { q: "Welke president gaf de bekende 'I have a dream' toespraak?", o: ["JFK","Obama","Martin Luther King","Lincoln"], a: 2 },
+  { q: "In welke stad staat de Eiffeltoren?", o: ["Londen","Parijs","Rome","Berlijn"], a: 1 },
+  { q: "Wat is sneller: het geluid of het licht?", o: ["Geluid","Licht","Even snel","Hangt af van het medium"], a: 1 },
+  { q: "Welk land heeft de meeste inwoners?", o: ["VS","Rusland","China","India"], a: 3 },
+  { q: "Wat eten panda's voornamelijk?", o: ["Vis","Bamboe","Bananen","Rijst"], a: 1 },
+  { q: "Welke groep heeft 'Bohemian Rhapsody' uitgebracht?", o: ["The Beatles","Queen","Led Zeppelin","Pink Floyd"], a: 1 },
+  { q: "Hoe heet de grootste oceaan?", o: ["Atlantische","Indische","Stille","Noordelijke IJszee"], a: 2 },
+  { q: "Welke vorm heeft een DNA-molecuul?", o: ["Vierkant","Dubbele helix","Driehoek","Cirkel"], a: 1 },
+  { q: "Hoeveel benen heeft een spin?", o: ["6","8","10","12"], a: 1 },
+  { q: "Welke planeet staat het dichtst bij de zon?", o: ["Venus","Aarde","Mars","Mercurius"], a: 3 },
+  { q: "Wie schreef 'Romeo en Julia'?", o: ["Charles Dickens","Shakespeare","Jane Austen","Oscar Wilde"], a: 1 },
+  { q: "Wat is de hoofdstad van Australië?", o: ["Sydney","Melbourne","Canberra","Perth"], a: 2 },
+  { q: "Hoeveel toetsen heeft een standaard piano?", o: ["76","88","100","112"], a: 1 },
+  { q: "Welk land heeft de meeste tijdzones?", o: ["Rusland","VS","Frankrijk","China"], a: 2 },
+  { q: "Hoe heet de munteenheid van Japan?", o: ["Yuan","Won","Yen","Rupee"], a: 2 },
+  { q: "Welke kleur ontstaat door geel en blauw te mengen?", o: ["Oranje","Groen","Paars","Bruin"], a: 1 },
+  { q: "Welke vrouw was eerste minister-president van het VK?", o: ["Theresa May","Margaret Thatcher","Liz Truss","Indira Gandhi"], a: 1 },
+  { q: "Hoeveel zijden heeft een dodecaëder?", o: ["10","12","20","8"], a: 1 },
+  { q: "Welk dier is geen knaagdier?", o: ["Hamster","Egel","Eekhoorn","Cavia"], a: 1 },
+  { q: "Welk land heeft een rode cirkel op een witte vlag?", o: ["China","Japan","Zuid-Korea","Vietnam"], a: 1 },
+  { q: "In welk jaar viel de Berlijnse muur?", o: ["1985","1989","1991","1995"], a: 1 },
+  { q: "Wie schilderde de Nachtwacht?", o: ["Vermeer","Rubens","Rembrandt","Bruegel"], a: 2 },
+  { q: "Welk metaal is vloeibaar bij kamertemperatuur?", o: ["IJzer","Kwik","Lood","Koper"], a: 1 },
+  { q: "Hoeveel olympische ringen zijn er?", o: ["4","5","6","7"], a: 1 },
+  { q: "Welke band zong 'Smells Like Teen Spirit'?", o: ["Pearl Jam","Soundgarden","Nirvana","Foo Fighters"], a: 2 },
+  { q: "Welk Nederlands eiland is het grootst?", o: ["Texel","Vlieland","Ameland","Terschelling"], a: 0 },
+  { q: "Hoeveel poten heeft een vlinder?", o: ["4","6","8","10"], a: 1 },
+  { q: "Wat is het zwaarste element in het periodiek systeem (van nature voorkomend)?", o: ["Lood","Uranium","Plutonium","Goud"], a: 1 },
+  { q: "Welk gas ademen we vooral uit?", o: ["Zuurstof","Koolstofdioxide","Stikstof","Waterstof"], a: 1 },
+  { q: "Welke kunstenaar sneed zijn eigen oor af?", o: ["Picasso","Vincent van Gogh","Rembrandt","Dali"], a: 1 },
+];
+
+// Curated brands for logo guessing — domain is used to fetch favicon
+// Curated brands whose simple-icons mark is mostly text-free (icon only).
+// Uses simple-icons CDN: https://cdn.simpleicons.org/{slug}/{color}
+// Each entry: name (Dutch display), slug (simple-icons), and brand color (no #).
+const LOGOS = [
+  { name: "Apple",          slug: "apple",       hex: "000000" },
+  { name: "Nike",           slug: "nike",        hex: "000000" },
+  { name: "Adidas",         slug: "adidas",      hex: "000000" },
+  { name: "Mercedes-Benz",  slug: "mercedes",    hex: "242424" },
+  { name: "BMW",            slug: "bmw",         hex: "0066B1" },
+  { name: "Audi",           slug: "audi",        hex: "BB0A30" },
+  { name: "McDonald's",     slug: "mcdonalds",   hex: "FFC72C" },
+  { name: "Starbucks",      slug: "starbucks",   hex: "00704A" },
+  { name: "Shell",          slug: "shell",       hex: "FFD500" },
+  { name: "Spotify",        slug: "spotify",     hex: "1DB954" },
+  { name: "YouTube",        slug: "youtube",     hex: "FF0000" },
+  { name: "TikTok",         slug: "tiktok",      hex: "000000" },
+  { name: "Snapchat",       slug: "snapchat",    hex: "FFFC00" },
+  { name: "WhatsApp",       slug: "whatsapp",    hex: "25D366" },
+  { name: "Discord",        slug: "discord",     hex: "5865F2" },
+  { name: "Instagram",      slug: "instagram",   hex: "E4405F" },
+  { name: "X (Twitter)",    slug: "x",           hex: "000000" },
+  { name: "Telegram",       slug: "telegram",    hex: "26A5E4" },
+  { name: "Airbnb",         slug: "airbnb",      hex: "FF5A5F" },
+  { name: "Uber",           slug: "uber",        hex: "000000" },
+  { name: "Tesla",          slug: "tesla",       hex: "CC0000" },
+  { name: "Nvidia",         slug: "nvidia",      hex: "76B900" },
+  { name: "GitHub",         slug: "github",      hex: "181717" },
+  { name: "Dropbox",        slug: "dropbox",     hex: "0061FF" },
+  { name: "PayPal",         slug: "paypal",      hex: "003087" },
+  { name: "Pinterest",      slug: "pinterest",   hex: "BD081C" },
+  { name: "Twitch",         slug: "twitch",      hex: "9146FF" },
+  { name: "Reddit",         slug: "reddit",      hex: "FF4500" },
+  { name: "Slack",          slug: "slack",       hex: "4A154B" },
+  { name: "Firefox",        slug: "firefox",     hex: "FF7139" },
+  { name: "Mastodon",       slug: "mastodon",    hex: "6364FF" },
+  { name: "Lego",           slug: "lego",        hex: "FFCF00" },
+  { name: "Ferrari",        slug: "ferrari",     hex: "FF2800" },
+  { name: "Lamborghini",    slug: "lamborghini", hex: "B59E66" },
+  { name: "Porsche",        slug: "porsche",     hex: "B12B28" },
+  { name: "Mitsubishi",     slug: "mitsubishi",  hex: "E60012" },
+  { name: "Subaru",         slug: "subaru",      hex: "0033A0" },
+  { name: "Honda",          slug: "honda",       hex: "CC0000" },
+  { name: "Suzuki",         slug: "suzuki",      hex: "E30613" },
+  { name: "Mazda",          slug: "mazda",       hex: "101010" },
+  { name: "Renault",        slug: "renault",     hex: "FFCB00" },
+  { name: "Peugeot",        slug: "peugeot",     hex: "000000" },
+  { name: "Citroën",        slug: "citroen",     hex: "C8102E" },
+  { name: "Fiat",           slug: "fiat",        hex: "AC1923" },
+  { name: "Volvo",          slug: "volvo",       hex: "000F60" },
+  { name: "Skype",          slug: "skype",       hex: "00AFF0" },
+  { name: "Adobe",          slug: "adobe",       hex: "FF0000" },
+  { name: "Heineken",       slug: "heineken",    hex: "008236" },
+  { name: "Carlsberg",      slug: "carlsberg",   hex: "1B438B" },
+  { name: "Red Bull",       slug: "redbull",     hex: "DB0A40" },
+];
+
+// Curated company revenues (FY 2023/2024 approximations in billions USD or EUR)
+const REVENUES = [
+  { name: "Coca-Cola", year: 2023, revenue: 45.8, unit: "miljard USD" },
+  { name: "Apple", year: 2024, revenue: 391.0, unit: "miljard USD" },
+  { name: "ASML", year: 2024, revenue: 28.3, unit: "miljard EUR" },
+  { name: "Heineken", year: 2023, revenue: 30.4, unit: "miljard EUR" },
+  { name: "Shell", year: 2023, revenue: 316.6, unit: "miljard USD" },
+  { name: "Philips", year: 2023, revenue: 18.2, unit: "miljard EUR" },
+  { name: "ING Group", year: 2023, revenue: 22.6, unit: "miljard EUR" },
+  { name: "Netflix", year: 2023, revenue: 33.7, unit: "miljard USD" },
+  { name: "Tesla", year: 2023, revenue: 96.8, unit: "miljard USD" },
+  { name: "Microsoft", year: 2024, revenue: 245.1, unit: "miljard USD" },
+  { name: "Amazon", year: 2023, revenue: 574.8, unit: "miljard USD" },
+  { name: "Google (Alphabet)", year: 2023, revenue: 307.4, unit: "miljard USD" },
+  { name: "Albert Heijn (Ahold Delhaize)", year: 2023, revenue: 88.7, unit: "miljard EUR" },
+  { name: "KLM", year: 2023, revenue: 12.4, unit: "miljard EUR" },
+  { name: "Rabobank", year: 2023, revenue: 16.1, unit: "miljard EUR" },
+  { name: "Unilever", year: 2023, revenue: 59.6, unit: "miljard EUR" },
+  { name: "Nike", year: 2024, revenue: 51.4, unit: "miljard USD" },
+  { name: "Adidas", year: 2023, revenue: 21.4, unit: "miljard EUR" },
+  { name: "McDonald's", year: 2023, revenue: 25.5, unit: "miljard USD" },
+  { name: "Spotify", year: 2023, revenue: 13.2, unit: "miljard EUR" },
+  { name: "Nvidia", year: 2024, revenue: 60.9, unit: "miljard USD" },
+  { name: "Meta (Facebook)", year: 2023, revenue: 134.9, unit: "miljard USD" },
+  { name: "Walmart", year: 2024, revenue: 648.1, unit: "miljard USD" },
+  { name: "ExxonMobil", year: 2023, revenue: 334.7, unit: "miljard USD" },
+  { name: "Toyota", year: 2024, revenue: 305.9, unit: "miljard USD" },
+  { name: "Samsung Electronics", year: 2023, revenue: 198.5, unit: "miljard USD" },
+  { name: "Volkswagen Group", year: 2023, revenue: 322.3, unit: "miljard EUR" },
+  { name: "BMW Group", year: 2023, revenue: 155.5, unit: "miljard EUR" },
+  { name: "Disney", year: 2023, revenue: 88.9, unit: "miljard USD" },
+  { name: "Nestlé", year: 2023, revenue: 93.0, unit: "miljard CHF" },
+  { name: "Bayer", year: 2023, revenue: 47.6, unit: "miljard EUR" },
+  { name: "Boeing", year: 2023, revenue: 77.8, unit: "miljard USD" },
+  { name: "Airbus", year: 2023, revenue: 65.4, unit: "miljard EUR" },
+  { name: "BP", year: 2023, revenue: 213.0, unit: "miljard USD" },
+  { name: "TotalEnergies", year: 2023, revenue: 218.9, unit: "miljard USD" },
+  { name: "L'Oréal", year: 2023, revenue: 41.2, unit: "miljard EUR" },
+  { name: "AB InBev", year: 2023, revenue: 59.4, unit: "miljard USD" },
+  { name: "Just Eat Takeaway", year: 2023, revenue: 5.1, unit: "miljard EUR" },
+  { name: "PostNL", year: 2023, revenue: 3.2, unit: "miljard EUR" },
+  { name: "Bol.com (Ahold)", year: 2023, revenue: 2.7, unit: "miljard EUR" },
+];
+
+// Curated historical events for the timeline slider
+const HIST_EVENTS = [
+  { event: "Val van de Berlijnse Muur", year: 1989 },
+  { event: "Eerste mens op de maan (Apollo 11)", year: 1969 },
+  { event: "Onafhankelijkheid van de Verenigde Staten", year: 1776 },
+  { event: "Einde Tweede Wereldoorlog", year: 1945 },
+  { event: "Watersnoodramp Nederland", year: 1953 },
+  { event: "Oprichting van de Verenigde Naties", year: 1945 },
+  { event: "Eerste vlucht van de gebroeders Wright", year: 1903 },
+  { event: "Uitvinding van het wereldwijde web (WWW)", year: 1989 },
+  { event: "Lancering van de iPhone (origineel)", year: 2007 },
+  { event: "Franse Revolutie begint", year: 1789 },
+  { event: "Geboorte van Rembrandt van Rijn", year: 1606 },
+  { event: "Vrede van Westfalen", year: 1648 },
+  { event: "Overlijden van Vincent van Gogh", year: 1890 },
+  { event: "Nederland wordt onafhankelijk van Spanje (Munster)", year: 1648 },
+  { event: "Aanslag op de Twin Towers (9/11)", year: 2001 },
+  { event: "Eerste Olympische Spelen van de moderne tijd (Athene)", year: 1896 },
+  { event: "Titanic zinkt", year: 1912 },
+  { event: "Oprichting van Google", year: 1998 },
+  { event: "Eerste auto van Henry Ford (Model T)", year: 1908 },
+  { event: "Brexit-referendum", year: 2016 },
+  { event: "Tsjernobyl-ramp", year: 1986 },
+  { event: "Mandela komt vrij uit gevangenis", year: 1990 },
+  { event: "Oprichting Europese Unie (Maastricht)", year: 1992 },
+  { event: "Telefoon uitgevonden door Bell", year: 1876 },
+  { event: "Begin van de Eerste Wereldoorlog", year: 1914 },
+  { event: "Beurskrach (Black Tuesday)", year: 1929 },
+  { event: "Mahatma Gandhi vermoord", year: 1948 },
+  { event: "Cubaanse rakettencrisis", year: 1962 },
+  { event: "Moord op John F. Kennedy", year: 1963 },
+  { event: "Woodstock-festival", year: 1969 },
+  { event: "Eindexamen van Anne Frank's dagboek (laatste entry)", year: 1944 },
+  { event: "Frans Bauer wint Eurovisie Songfestival (Nederland: Sandra Kim?)", year: 1957 },
+  { event: "Nederlands elftal wint EK voetbal", year: 1988 },
+  { event: "Eerste hartoperatie (transplantatie) door Barnard", year: 1967 },
+  { event: "Penicilline ontdekt door Fleming", year: 1928 },
+  { event: "De Slag bij Waterloo", year: 1815 },
+  { event: "Nederlandse Grondwet (Thorbecke)", year: 1848 },
+  { event: "Slag om Stalingrad eindigt", year: 1943 },
+  { event: "Heineken ontvoerd", year: 1983 },
+  { event: "Bijlmerramp (El Al-vliegtuig)", year: 1992 },
+  { event: "Moord op Pim Fortuyn", year: 2002 },
+  { event: "Moord op Theo van Gogh", year: 2004 },
+  { event: "Tsunami in Zuidoost-Azië (Boxing Day)", year: 2004 },
+  { event: "Lancering van Wikipedia", year: 2001 },
+  { event: "Eerste tweet op Twitter", year: 2006 },
+  { event: "Oprichting van Facebook", year: 2004 },
+  { event: "Oprichting van YouTube", year: 2005 },
+  { event: "Aftreden Paus Benedictus XVI", year: 2013 },
+  { event: "Brandt op de Notre-Dame", year: 2019 },
+  { event: "Begin coronapandemie (eerste lockdown NL)", year: 2020 },
+  { event: "Russische invasie van Oekraïne", year: 2022 },
+  { event: "Apollo 13-missie", year: 1970 },
+  { event: "Voltooiing van het Suezkanaal", year: 1869 },
+  { event: "Eerste keer Tour de France gereden", year: 1903 },
+  { event: "Tijdperk van Napoleon eindigt (Waterloo)", year: 1815 },
+  { event: "Vrede van Versailles", year: 1919 },
+  { event: "Geboorte van Albert Einstein", year: 1879 },
+  { event: "Publicatie van 'Over de oorsprong der soorten' (Darwin)", year: 1859 },
+  { event: "Uitvinding van de gloeilamp door Edison", year: 1879 },
+  { event: "Eerste atoombom (Trinity-test)", year: 1945 },
+  { event: "Lancering van de Hubble Space Telescope", year: 1990 },
+  { event: "Eerste mens in de ruimte (Joeri Gagarin)", year: 1961 },
+  { event: "Mona Lisa gestolen uit het Louvre", year: 1911 },
+  { event: "Wereldtentoonstelling Parijs (Eiffeltoren)", year: 1889 },
+];
+
+// World map targets — city/landmark with coordinates
+// Map targets — tagged with difficulty 1..4 (1=very famous, 4=obscure)
+const MAP_TARGETS = [
+  // ===== LEVEL 1 — extreem bekend, kinderspel =====
+  { name: "Parijs, Frankrijk",        lat: 48.8566, lng:   2.3522,  d: 1 },
+  { name: "Londen, Verenigd Koninkrijk", lat: 51.5074, lng: -0.1278, d: 1 },
+  { name: "New York, VS",             lat: 40.7128, lng: -74.0060,  d: 1 },
+  { name: "Rome, Italië",             lat: 41.9028, lng:  12.4964,  d: 1 },
+  { name: "Tokyo, Japan",             lat: 35.6762, lng: 139.6503,  d: 1 },
+  { name: "Rio de Janeiro, Brazilië", lat: -22.9068, lng: -43.1729, d: 1 },
+  { name: "Sydney, Australië",        lat: -33.8688, lng: 151.2093, d: 1 },
+  { name: "Moskou, Rusland",          lat: 55.7558, lng:  37.6173,  d: 1 },
+
+  // ===== LEVEL 2 — bekend, redelijke kennis nodig =====
+  { name: "Caïro, Egypte",            lat: 30.0444, lng:  31.2357,  d: 2 },
+  { name: "Bangkok, Thailand",        lat: 13.7563, lng: 100.5018,  d: 2 },
+  { name: "Istanbul, Turkije",        lat: 41.0082, lng:  28.9784,  d: 2 },
+  { name: "Buenos Aires, Argentinië", lat: -34.6037, lng: -58.3816, d: 2 },
+  { name: "Kaapstad, Zuid-Afrika",    lat: -33.9249, lng:  18.4241, d: 2 },
+  { name: "Reykjavik, IJsland",       lat: 64.1466, lng: -21.9426,  d: 2 },
+  { name: "Vancouver, Canada",        lat: 49.2827, lng: -123.1207, d: 2 },
+  { name: "Marrakech, Marokko",       lat: 31.6295, lng:  -7.9811,  d: 2 },
+  { name: "Mumbai, India",            lat: 19.0760, lng:  72.8777,  d: 2 },
+  { name: "Honolulu, Hawaii",         lat: 21.3099, lng: -157.8581, d: 2 },
+  { name: "Helsinki, Finland",        lat: 60.1699, lng:  24.9384,  d: 2 },
+  { name: "Sevilla, Spanje",          lat: 37.3891, lng:  -5.9845,  d: 2 },
+
+  // ===== LEVEL 3 — pittig, geografische kennis vereist =====
+  { name: "Tasjkent, Oezbekistan",    lat: 41.2995, lng:  69.2401,  d: 3 },
+  { name: "Astana, Kazachstan",       lat: 51.1605, lng:  71.4704,  d: 3 },
+  { name: "Lagos, Nigeria",           lat:  6.5244, lng:   3.3792,  d: 3 },
+  { name: "Doha, Qatar",              lat: 25.2854, lng:  51.5310,  d: 3 },
+  { name: "Tbilisi, Georgië",         lat: 41.7151, lng:  44.8271,  d: 3 },
+  { name: "Ushuaia, Argentinië",      lat: -54.8019, lng: -68.3030, d: 3 },
+  { name: "Petra, Jordanië",          lat: 30.3285, lng:  35.4444,  d: 3 },
+  { name: "Hanoi, Vietnam",           lat: 21.0285, lng: 105.8542,  d: 3 },
+  { name: "Almaty, Kazachstan",       lat: 43.2220, lng:  76.8512,  d: 3 },
+  { name: "Bogotá, Colombia",         lat:  4.7110, lng: -74.0721,  d: 3 },
+  { name: "Manilla, Filipijnen",      lat: 14.5995, lng: 120.9842,  d: 3 },
+  { name: "Addis Abeba, Ethiopië",    lat:  9.0320, lng:  38.7469,  d: 3 },
+  { name: "Skopje, Noord-Macedonië",  lat: 41.9981, lng:  21.4254,  d: 3 },
+  { name: "Vientiane, Laos",          lat: 17.9757, lng: 102.6331,  d: 3 },
+  { name: "Mount Everest",            lat: 27.9881, lng:  86.9250,  d: 3 },
+  { name: "Machu Picchu, Peru",       lat: -13.1631, lng: -72.5450, d: 3 },
+
+  // ===== LEVEL 4 — expert, obscure plekken =====
+  { name: "Boecharest, Roemenië",     lat: 44.4268, lng:  26.1025,  d: 4 },
+  { name: "Asjchabad, Turkmenistan",  lat: 37.9601, lng:  58.3261,  d: 4 },
+  { name: "Bisjkek, Kirgizië",        lat: 42.8746, lng:  74.5698,  d: 4 },
+  { name: "Doesjanbe, Tadzjikistan",  lat: 38.5598, lng:  68.7870,  d: 4 },
+  { name: "Antananarivo, Madagaskar", lat: -18.8792, lng:  47.5079, d: 4 },
+  { name: "Nouakchott, Mauritanië",   lat: 18.0735, lng: -15.9582,  d: 4 },
+  { name: "Bandar Seri Begawan, Brunei", lat: 4.9031, lng: 114.9398, d: 4 },
+  { name: "Paramaribo, Suriname",     lat:  5.8520, lng: -55.2038,  d: 4 },
+  { name: "Pyongyang, Noord-Korea",   lat: 39.0392, lng: 125.7625,  d: 4 },
+  { name: "Reunion (eiland)",         lat: -21.1151, lng:  55.5364, d: 4 },
+  { name: "Tristan da Cunha",         lat: -37.1052, lng: -12.2777, d: 4 },
+  { name: "Longyearbyen, Spitsbergen", lat: 78.2232, lng: 15.6267,  d: 4 },
+  { name: "Easter Island (Paaseiland)", lat: -27.1127, lng: -109.3497, d: 4 },
+  { name: "Funafuti, Tuvalu",         lat: -8.5211, lng: 179.1962,  d: 4 },
+  { name: "Yerevan, Armenië",         lat: 40.1872, lng:  44.5152,  d: 4 },
+  { name: "Bishkek, Kirgizië",        lat: 42.8746, lng:  74.5698,  d: 4 },
+  { name: "Sucre, Bolivia",           lat: -19.0196, lng: -65.2619, d: 4 },
+  { name: "Maputo, Mozambique",       lat: -25.9692, lng:  32.5732, d: 4 },
+];
+
+// Inline country dataset (curated subset, with ISO codes for flagcdn.com)
+// Used as primary source — guarantees offline operation, no CORS issues.
+const COUNTRY_DATA = [
+  { name: "Nederland",          capital: "Amsterdam",     iso: "nl" },
+  { name: "België",             capital: "Brussel",       iso: "be" },
+  { name: "Duitsland",          capital: "Berlijn",       iso: "de" },
+  { name: "Frankrijk",          capital: "Parijs",        iso: "fr" },
+  { name: "Spanje",             capital: "Madrid",        iso: "es" },
+  { name: "Italië",             capital: "Rome",          iso: "it" },
+  { name: "Portugal",           capital: "Lissabon",      iso: "pt" },
+  { name: "Verenigd Koninkrijk",capital: "Londen",        iso: "gb" },
+  { name: "Ierland",            capital: "Dublin",        iso: "ie" },
+  { name: "Zweden",             capital: "Stockholm",     iso: "se" },
+  { name: "Noorwegen",          capital: "Oslo",          iso: "no" },
+  { name: "Denemarken",         capital: "Kopenhagen",    iso: "dk" },
+  { name: "Finland",            capital: "Helsinki",      iso: "fi" },
+  { name: "IJsland",            capital: "Reykjavik",     iso: "is" },
+  { name: "Polen",              capital: "Warschau",      iso: "pl" },
+  { name: "Tsjechië",           capital: "Praag",         iso: "cz" },
+  { name: "Oostenrijk",         capital: "Wenen",         iso: "at" },
+  { name: "Zwitserland",        capital: "Bern",          iso: "ch" },
+  { name: "Griekenland",        capital: "Athene",        iso: "gr" },
+  { name: "Hongarije",          capital: "Boedapest",     iso: "hu" },
+  { name: "Roemenië",           capital: "Boekarest",     iso: "ro" },
+  { name: "Bulgarije",          capital: "Sofia",         iso: "bg" },
+  { name: "Kroatië",            capital: "Zagreb",        iso: "hr" },
+  { name: "Servië",             capital: "Belgrado",      iso: "rs" },
+  { name: "Rusland",            capital: "Moskou",        iso: "ru" },
+  { name: "Oekraïne",           capital: "Kiev",          iso: "ua" },
+  { name: "Turkije",            capital: "Ankara",        iso: "tr" },
+  { name: "Verenigde Staten",   capital: "Washington",    iso: "us" },
+  { name: "Canada",             capital: "Ottawa",        iso: "ca" },
+  { name: "Mexico",             capital: "Mexico-Stad",   iso: "mx" },
+  { name: "Brazilië",           capital: "Brasília",      iso: "br" },
+  { name: "Argentinië",         capital: "Buenos Aires",  iso: "ar" },
+  { name: "Chili",              capital: "Santiago",      iso: "cl" },
+  { name: "Peru",               capital: "Lima",          iso: "pe" },
+  { name: "Colombia",           capital: "Bogotá",        iso: "co" },
+  { name: "Venezuela",          capital: "Caracas",       iso: "ve" },
+  { name: "Cuba",               capital: "Havana",        iso: "cu" },
+  { name: "China",              capital: "Beijing",       iso: "cn" },
+  { name: "Japan",              capital: "Tokio",         iso: "jp" },
+  { name: "Zuid-Korea",         capital: "Seoel",         iso: "kr" },
+  { name: "Noord-Korea",        capital: "Pyongyang",     iso: "kp" },
+  { name: "India",              capital: "New Delhi",     iso: "in" },
+  { name: "Pakistan",           capital: "Islamabad",     iso: "pk" },
+  { name: "Bangladesh",         capital: "Dhaka",         iso: "bd" },
+  { name: "Indonesië",          capital: "Jakarta",       iso: "id" },
+  { name: "Thailand",           capital: "Bangkok",       iso: "th" },
+  { name: "Vietnam",            capital: "Hanoi",         iso: "vn" },
+  { name: "Filipijnen",         capital: "Manilla",       iso: "ph" },
+  { name: "Maleisië",           capital: "Kuala Lumpur",  iso: "my" },
+  { name: "Singapore",          capital: "Singapore",     iso: "sg" },
+  { name: "Saudi-Arabië",       capital: "Riyad",         iso: "sa" },
+  { name: "Iran",               capital: "Teheran",       iso: "ir" },
+  { name: "Irak",               capital: "Bagdad",        iso: "iq" },
+  { name: "Israël",             capital: "Jeruzalem",     iso: "il" },
+  { name: "Egypte",             capital: "Caïro",         iso: "eg" },
+  { name: "Marokko",            capital: "Rabat",         iso: "ma" },
+  { name: "Algerije",           capital: "Algiers",       iso: "dz" },
+  { name: "Tunesië",            capital: "Tunis",         iso: "tn" },
+  { name: "Zuid-Afrika",        capital: "Pretoria",      iso: "za" },
+  { name: "Nigeria",            capital: "Abuja",         iso: "ng" },
+  { name: "Kenia",              capital: "Nairobi",       iso: "ke" },
+  { name: "Ethiopië",           capital: "Addis Abeba",   iso: "et" },
+  { name: "Ghana",              capital: "Accra",         iso: "gh" },
+  { name: "Senegal",            capital: "Dakar",         iso: "sn" },
+  { name: "Australië",          capital: "Canberra",      iso: "au" },
+  { name: "Nieuw-Zeeland",      capital: "Wellington",    iso: "nz" },
+  { name: "Fiji",               capital: "Suva",          iso: "fj" },
+  { name: "Jamaica",            capital: "Kingston",      iso: "jm" },
+];
+
+// 30 seconds word lists — categories of 5 words each
+const THIRTY_SECONDS = [
+  { theme: "Iets in de keuken", words: ["Vaatwasser","Pollepel","Olijfolie","Theedoek","Magnetron"] },
+  { theme: "Sport", words: ["Tennisracket","Schaatsen","Marathon","Doelpaal","Bokshandschoen"] },
+  { theme: "Beroemde Nederlanders", words: ["Johan Cruijff","Anne Frank","Mark Rutte","Rembrandt","Andre Hazes"] },
+  { theme: "Reizen", words: ["Paspoort","Koffer","Reisbureau","Souvenir","Visum"] },
+  { theme: "Films & TV", words: ["Titanic","Netflix","Oscar","Aflevering","Bioscoop"] },
+  { theme: "Het lichaam", words: ["Sleutelbeen","Wenkbrauw","Hartslag","Achillespees","Knieschijf"] },
+  { theme: "Op kantoor", words: ["Vergadering","Printer","Whiteboard","Salaris","Koffieautomaat"] },
+  { theme: "In de natuur", words: ["Eikenboom","Waterval","Mierenhoop","Paddenstoel","Bergtop"] },
+  { theme: "Eten & drinken", words: ["Croissant","Stamppot","Sushi","Espresso","Bitterbal"] },
+  { theme: "Muziekinstrumenten", words: ["Saxofoon","Harmonica","Drumstel","Cello","Doedelzak"] },
+  { theme: "Bij de dokter", words: ["Stethoscoop","Receptbriefje","Bloeddruk","Pleister","Wachtkamer"] },
+  { theme: "Verkeer", words: ["Rotonde","Snelheidsmeter","Stoplicht","Parkeermeter","Zebrapad"] },
+  { theme: "Vakantie aan zee", words: ["Strandstoel","Zandkasteel","Parasol","Surfplank","Vuurtoren"] },
+  { theme: "Op school", words: ["Krijtbord","Rekenschrift","Schoolagenda","Boekentas","Conciërge"] },
+  { theme: "Computer & internet", words: ["Toetsenbord","Cookies","Browser","Wachtwoord","USB-stick"] },
+  { theme: "In de tuin", words: ["Tuinslang","Composthoop","Kruiwagen","Snoeischaar","Vogelhuisje"] },
+  { theme: "In de stad", words: ["Lantaarnpaal","Brugleuning","Tramhalte","Etalage","Parkeergarage"] },
+  { theme: "Dieren in de zoo", words: ["Olifant","Giraf","Pinguïn","Krokodil","Stokstaartje"] },
+  { theme: "Bouwen & klussen", words: ["Hamer","Waterpas","Boormachine","Werkbank","Schroefje"] },
+  { theme: "Bij de kapper", words: ["Schaar","Föhn","Spiegel","Tondeuse","Wasbak"] },
+  { theme: "Sprookjes", words: ["Heks","Glazen muiltje","Toverstaf","Kasteeltoren","Sprekende kikker"] },
+  { theme: "Kerst", words: ["Kerstboom","Engeltje","Slingers","Glühwein","Schoorsteen"] },
+  { theme: "Sinterklaas", words: ["Pakjesavond","Pepernoten","Schoorsteen","Roe","Stoomboot"] },
+  { theme: "Onder water", words: ["Octopus","Koraalrif","Duikfles","Zeester","Schipwrak"] },
+  { theme: "Ruimte", words: ["Astronaut","Komeet","Zwart gat","Ruimtepak","Maanlanding"] },
+  { theme: "Sprookjesachtige wezens", words: ["Eenhoorn","Trol","Elf","Draak","Kabouter"] },
+  { theme: "Beroep & werk", words: ["Brandweerman","Loodgieter","Boekhouder","Verloskundige","Stratenmaker"] },
+  { theme: "Festival", words: ["Bandshirt","Polsbandje","Drijfwijfje","Camping","Hoofdpodium"] },
+  { theme: "Bij de bakker", words: ["Stokbrood","Saucijzenbroodje","Slagroom","Marsepein","Croissant"] },
+  { theme: "Cafetaria", words: ["Frituurmand","Frikandel","Friet speciaal","Pinda saus","Kroket"] },
+];
+
+// Drawing words — simple Dutch nouns
+const DRAW_WORDS = [
+  "Vuurtoren","Tandenborstel","Olifant","Helikopter","Pizza","Skelet","Robot","Cactus",
+  "Kasteel","Vulkaan","Sneeuwpop","Ridder","UFO","Zonnebloem","Microscoop","Piraat",
+  "Regenboog","Astronaut","Krokodil","Ananas","Dinosaurus","Brandweerwagen","Duikboot",
+  "Slang","Boot","Klok","Ster","Tank","Trompet","Wieg","Boomstam","Kruiwagen",
+  "Paraplu","Olifantenpoot","Strandbal","Vaatwasser","Schommel","Hangbrug","Kompas",
+  "Ster","Zandloper","Tractor","Voetbal","Spook","Schat","Ridderhelm","Slagroomtaart",
+  "Telescoop","Boemerang","Drumstel","Bezem","Bushalte","IJsschots","Werelbol","Vlinder",
+  "Stoplicht","Surfplank","Voorgevel","Vinger","Cowboyhoed","Mond","Trommel","Krukje",
+  "Konijn","Schaatser","Vogelnest","Iglo","Lasso","Bril","Steiger","Brievenbus",
+  "Lift","Reuzenrad","Tepee","Theepot","Boekenkast","Bowlingbal"
+];
+
+// =====================================================================
+// POPULARITY_QUIZZES — live Wikipedia pageview lookups
+// Each quiz: pick from `options`, fetch real NL-Wikipedia pageviews for
+// the past 30 days. Most views wins. Article titles use underscores
+// and match nl.wikipedia.org/wiki/<article>.
+// =====================================================================
+const POPULARITY_QUIZZES = [
+  {
+    category: 'Bekende personen',
+    question: 'Wie werd het vaakst opgezocht op Wikipedia (afgelopen 30 dagen)?',
+    options: [
+      { label: 'Donald Trump',       article: 'Donald_Trump' },
+      { label: 'Elon Musk',          article: 'Elon_Musk' },
+      { label: 'Mark Rutte',         article: 'Mark_Rutte' },
+      { label: 'Taylor Swift',       article: 'Taylor_Swift' },
+      { label: 'Volodymyr Zelensky', article: 'Volodymyr_Zelensky' },
+      { label: 'Geert Wilders',      article: 'Geert_Wilders' },
+      { label: 'Lionel Messi',       article: 'Lionel_Messi' },
+      { label: 'Cristiano Ronaldo',  article: 'Cristiano_Ronaldo' },
+      { label: 'Vladimir Poetin',    article: 'Vladimir_Poetin' },
+      { label: 'Beyoncé',            article: 'Beyoncé' },
+    ]
+  },
+  {
+    category: 'Wereldsteden',
+    question: 'Welke stad heeft het meeste verkeer op Wikipedia (afgelopen 30 dagen)?',
+    options: [
+      { label: 'Amsterdam', article: 'Amsterdam' },
+      { label: 'Parijs',    article: 'Parijs' },
+      { label: 'Londen',    article: 'Londen' },
+      { label: 'Berlijn',   article: 'Berlijn' },
+      { label: 'Rome',      article: 'Rome_(stad)' },
+      { label: 'Tokio',     article: 'Tokio' },
+      { label: 'New York',  article: 'New_York_(stad)' },
+      { label: 'Barcelona', article: 'Barcelona' },
+      { label: 'Dubai',     article: 'Dubai_(stad)' },
+      { label: 'Istanbul',  article: 'Istanboel' },
+    ]
+  },
+  {
+    category: 'Landen',
+    question: 'Welk land werd het vaakst opgezocht?',
+    options: [
+      { label: 'Verenigde Staten', article: 'Verenigde_Staten' },
+      { label: 'China',            article: 'China' },
+      { label: 'Duitsland',        article: 'Duitsland' },
+      { label: 'Japan',            article: 'Japan' },
+      { label: 'India',            article: 'India' },
+      { label: 'Brazilië',         article: 'Brazilië' },
+      { label: 'Rusland',          article: 'Rusland' },
+      { label: 'Frankrijk',        article: 'Frankrijk' },
+      { label: 'Italië',           article: 'Italië' },
+      { label: 'Australië',        article: 'Australië' },
+    ]
+  },
+  {
+    category: 'Voetballers',
+    question: 'Wie van deze voetballers had de meeste Wikipedia-bezoeken?',
+    options: [
+      { label: 'Lionel Messi',       article: 'Lionel_Messi' },
+      { label: 'Cristiano Ronaldo',  article: 'Cristiano_Ronaldo' },
+      { label: 'Memphis Depay',      article: 'Memphis_Depay' },
+      { label: 'Virgil van Dijk',    article: 'Virgil_van_Dijk' },
+      { label: 'Erling Haaland',     article: 'Erling_Haaland' },
+      { label: 'Kylian Mbappé',      article: 'Kylian_Mbappé' },
+      { label: 'Frenkie de Jong',    article: 'Frenkie_de_Jong' },
+      { label: 'Cody Gakpo',         article: 'Cody_Gakpo' },
+      { label: 'Vinícius Júnior',    article: 'Vinícius_Júnior' },
+      { label: 'Robert Lewandowski', article: 'Robert_Lewandowski' },
+    ]
+  },
+  {
+    category: 'Bedrijven',
+    question: 'Welk bedrijf had het meeste verkeer op Wikipedia?',
+    options: [
+      { label: 'Apple',     article: 'Apple_Inc.' },
+      { label: 'Tesla',     article: 'Tesla,_Inc.' },
+      { label: 'Microsoft', article: 'Microsoft' },
+      { label: 'Amazon',    article: 'Amazon.com' },
+      { label: 'Google',    article: 'Google' },
+      { label: 'Meta',      article: 'Meta_Platforms' },
+      { label: 'Netflix',   article: 'Netflix' },
+      { label: 'Nvidia',    article: 'Nvidia' },
+      { label: 'Shell',     article: 'Shell_plc' },
+      { label: 'ASML',      article: 'ASML' },
+    ]
+  },
+  {
+    category: 'Films',
+    question: 'Welke film had de meeste Wikipedia-bezoeken?',
+    options: [
+      { label: 'The Lord of the Rings', article: 'The_Lord_of_the_Rings_(filmtrilogie)' },
+      { label: 'Titanic',               article: 'Titanic_(1997)' },
+      { label: 'Avatar',                article: 'Avatar_(2009)' },
+      { label: 'The Dark Knight',       article: 'The_Dark_Knight' },
+      { label: 'Inception',             article: 'Inception' },
+      { label: 'Pulp Fiction',          article: 'Pulp_Fiction' },
+      { label: 'Forrest Gump',          article: 'Forrest_Gump' },
+      { label: 'The Matrix',            article: 'The_Matrix' },
+      { label: 'Interstellar',          article: 'Interstellar' },
+      { label: 'Star Wars',             article: 'Star_Wars_(film)' },
+    ]
+  },
+  {
+    category: 'Historische figuren',
+    question: 'Wie van deze historische figuren wordt het meest opgezocht?',
+    options: [
+      { label: 'Adolf Hitler',     article: 'Adolf_Hitler' },
+      { label: 'Albert Einstein',  article: 'Albert_Einstein' },
+      { label: 'Napoleon Bonaparte', article: 'Napoleon_Bonaparte' },
+      { label: 'Julius Caesar',    article: 'Julius_Caesar' },
+      { label: 'Anne Frank',       article: 'Anne_Frank' },
+      { label: 'Leonardo da Vinci', article: 'Leonardo_da_Vinci' },
+      { label: 'Willem van Oranje', article: 'Willem_van_Oranje' },
+      { label: 'Mahatma Gandhi',   article: 'Mahatma_Gandhi' },
+      { label: 'Jozef Stalin',     article: 'Jozef_Stalin' },
+      { label: 'Vincent van Gogh', article: 'Vincent_van_Gogh' },
+    ]
+  },
+  {
+    category: 'Tech & Wetenschap',
+    question: 'Welk onderwerp had de meeste pageviews?',
+    options: [
+      { label: 'ChatGPT',                article: 'ChatGPT' },
+      { label: 'Kunstmatige intelligentie', article: 'Kunstmatige_intelligentie' },
+      { label: 'Bitcoin',                article: 'Bitcoin' },
+      { label: 'Internet',               article: 'Internet' },
+      { label: 'COVID-19',               article: 'Coronapandemie' },
+      { label: 'iPhone',                 article: 'IPhone' },
+      { label: 'TikTok',                 article: 'TikTok' },
+      { label: 'YouTube',                article: 'YouTube' },
+      { label: 'Quantumcomputer',        article: 'Quantumcomputer' },
+      { label: 'Mars (planeet)',         article: 'Mars_(planeet)' },
+    ]
+  },
+  {
+    category: 'Acteurs',
+    question: 'Welke acteur werd het meest opgezocht?',
+    options: [
+      { label: 'Leonardo DiCaprio',  article: 'Leonardo_DiCaprio' },
+      { label: 'Brad Pitt',          article: 'Brad_Pitt' },
+      { label: 'Tom Cruise',         article: 'Tom_Cruise' },
+      { label: 'Robert De Niro',     article: 'Robert_De_Niro' },
+      { label: 'Johnny Depp',        article: 'Johnny_Depp' },
+      { label: 'Tom Hanks',          article: 'Tom_Hanks' },
+      { label: 'Will Smith',         article: 'Will_Smith' },
+      { label: 'Scarlett Johansson', article: 'Scarlett_Johansson' },
+      { label: 'Ryan Reynolds',      article: 'Ryan_Reynolds' },
+      { label: 'Margot Robbie',      article: 'Margot_Robbie' },
+    ]
+  },
+  {
+    category: 'Muziekartiesten',
+    question: 'Welke artiest had het meest verkeer?',
+    options: [
+      { label: 'Taylor Swift',  article: 'Taylor_Swift' },
+      { label: 'Beyoncé',       article: 'Beyoncé' },
+      { label: 'Rihanna',       article: 'Rihanna' },
+      { label: 'Adele',         article: 'Adele' },
+      { label: 'Bruno Mars',    article: 'Bruno_Mars' },
+      { label: 'Drake',         article: 'Drake_(rapper)' },
+      { label: 'Eminem',        article: 'Eminem' },
+      { label: 'Ed Sheeran',    article: 'Ed_Sheeran' },
+      { label: 'Lady Gaga',     article: 'Lady_Gaga' },
+      { label: 'The Weeknd',    article: 'The_Weeknd' },
+    ]
+  },
+  {
+    category: 'Bands',
+    question: 'Welke band wordt het meest opgezocht?',
+    options: [
+      { label: 'The Beatles',       article: 'The_Beatles' },
+      { label: 'Queen',             article: 'Queen_(band)' },
+      { label: 'Coldplay',          article: 'Coldplay' },
+      { label: 'Linkin Park',       article: 'Linkin_Park' },
+      { label: 'Metallica',         article: 'Metallica' },
+      { label: 'Nirvana',           article: 'Nirvana_(band)' },
+      { label: 'Pink Floyd',        article: 'Pink_Floyd' },
+      { label: 'AC/DC',             article: 'AC/DC' },
+      { label: 'The Rolling Stones', article: 'The_Rolling_Stones' },
+      { label: 'Imagine Dragons',   article: 'Imagine_Dragons' },
+    ]
+  },
+  {
+    category: 'TV-series',
+    question: 'Welke serie had de meeste pageviews?',
+    options: [
+      { label: 'Game of Thrones',   article: 'Game_of_Thrones' },
+      { label: 'Breaking Bad',      article: 'Breaking_Bad' },
+      { label: 'Friends',           article: 'Friends' },
+      { label: 'The Simpsons',      article: 'The_Simpsons' },
+      { label: 'Stranger Things',   article: 'Stranger_Things' },
+      { label: 'The Office (VS)',   article: 'The_Office_(Amerikaanse_televisieserie)' },
+      { label: 'Lost (TV-serie)',   article: 'Lost_(televisieserie)' },
+      { label: 'House of Cards',    article: 'House_of_Cards_(Amerikaanse_televisieserie)' },
+      { label: 'Squid Game',        article: 'Squid_Game' },
+      { label: 'The Crown',         article: 'The_Crown' },
+    ]
+  },
+  {
+    category: 'Sporten',
+    question: 'Welke sport wordt het meest opgezocht?',
+    options: [
+      { label: 'Voetbal',           article: 'Voetbal' },
+      { label: 'Tennis',            article: 'Tennis' },
+      { label: 'Basketbal',         article: 'Basketbal' },
+      { label: 'Wielrennen',        article: 'Wielersport' },
+      { label: 'Formule 1',         article: 'Formule_1' },
+      { label: 'Boksen',            article: 'Boksen' },
+      { label: 'Schaatsen',         article: 'Schaatsen' },
+      { label: 'Golf (sport)',      article: 'Golf_(sport)' },
+      { label: 'American football', article: 'American_football' },
+      { label: 'Mixed martial arts', article: 'Mixed_martial_arts' },
+    ]
+  },
+  {
+    category: 'Nederlandse politici',
+    question: 'Welke politicus had de meeste Wikipedia-bezoeken?',
+    options: [
+      { label: 'Mark Rutte',           article: 'Mark_Rutte' },
+      { label: 'Geert Wilders',        article: 'Geert_Wilders' },
+      { label: 'Pieter Omtzigt',       article: 'Pieter_Omtzigt' },
+      { label: 'Frans Timmermans',     article: 'Frans_Timmermans' },
+      { label: 'Caroline van der Plas', article: 'Caroline_van_der_Plas' },
+      { label: 'Dilan Yeşilgöz',       article: 'Dilan_Yeşilgöz-Zegerius' },
+      { label: 'Rob Jetten',           article: 'Rob_Jetten' },
+      { label: 'Wopke Hoekstra',       article: 'Wopke_Hoekstra' },
+      { label: 'Sigrid Kaag',          article: 'Sigrid_Kaag' },
+      { label: 'Femke Halsema',        article: 'Femke_Halsema' },
+    ]
+  },
+  {
+    category: 'Dieren',
+    question: 'Welk dier wordt het meest opgezocht?',
+    options: [
+      { label: 'Hond',     article: 'Hond' },
+      { label: 'Kat',      article: 'Kat_(dier)' },
+      { label: 'Olifant',  article: 'Olifanten' },
+      { label: 'Leeuw',    article: 'Leeuw' },
+      { label: 'Tijger',   article: 'Tijger' },
+      { label: 'Dolfijn',  article: 'Dolfijnen' },
+      { label: 'Walvis',   article: 'Walvissen' },
+      { label: 'Krokodil', article: 'Krokodillen' },
+      { label: 'Slang',    article: 'Slangen' },
+      { label: 'Panda',    article: 'Reuzenpanda' },
+    ]
+  },
+  {
+    category: 'Schilders',
+    question: 'Welke schilder wordt het meest opgezocht?',
+    options: [
+      { label: 'Vincent van Gogh',      article: 'Vincent_van_Gogh' },
+      { label: 'Rembrandt',             article: 'Rembrandt_van_Rijn' },
+      { label: 'Pablo Picasso',         article: 'Pablo_Picasso' },
+      { label: 'Leonardo da Vinci',     article: 'Leonardo_da_Vinci' },
+      { label: 'Claude Monet',          article: 'Claude_Monet' },
+      { label: 'Salvador Dalí',         article: 'Salvador_Dalí' },
+      { label: 'Johannes Vermeer',      article: 'Johannes_Vermeer' },
+      { label: 'Andy Warhol',           article: 'Andy_Warhol' },
+      { label: 'Frida Kahlo',           article: 'Frida_Kahlo' },
+      { label: 'Michelangelo',          article: 'Michelangelo_Buonarroti' },
+    ]
+  },
+  {
+    category: 'Videogames',
+    question: 'Welk videospel had het meest verkeer?',
+    options: [
+      { label: 'Minecraft',                  article: 'Minecraft' },
+      { label: 'Fortnite',                   article: 'Fortnite' },
+      { label: 'Grand Theft Auto V',         article: 'Grand_Theft_Auto_V' },
+      { label: 'The Legend of Zelda',        article: 'The_Legend_of_Zelda' },
+      { label: 'Counter-Strike',             article: 'Counter-Strike' },
+      { label: 'World of Warcraft',          article: 'World_of_Warcraft' },
+      { label: 'League of Legends',          article: 'League_of_Legends' },
+      { label: 'Call of Duty',               article: 'Call_of_Duty' },
+      { label: 'Super Mario',                article: 'Super_Mario' },
+      { label: 'Pokémon',                    article: 'Pokémon' },
+    ]
+  },
+  {
+    category: 'Nederlandse steden',
+    question: 'Welke Nederlandse stad wordt het meest opgezocht?',
+    options: [
+      { label: 'Amsterdam',  article: 'Amsterdam' },
+      { label: 'Rotterdam',  article: 'Rotterdam' },
+      { label: 'Den Haag',   article: "'s-Gravenhage" },
+      { label: 'Utrecht',    article: 'Utrecht_(stad)' },
+      { label: 'Eindhoven',  article: 'Eindhoven' },
+      { label: 'Groningen',  article: 'Groningen_(stad)' },
+      { label: 'Maastricht', article: 'Maastricht' },
+      { label: 'Breda',      article: 'Breda' },
+      { label: 'Nijmegen',   article: 'Nijmegen' },
+      { label: 'Leiden',     article: 'Leiden' },
+    ]
+  },
+  {
+    category: 'Wetenschappers',
+    question: 'Welke wetenschapper wordt het meest opgezocht?',
+    options: [
+      { label: 'Albert Einstein',   article: 'Albert_Einstein' },
+      { label: 'Isaac Newton',      article: 'Isaac_Newton' },
+      { label: 'Stephen Hawking',   article: 'Stephen_Hawking' },
+      { label: 'Marie Curie',       article: 'Marie_Curie' },
+      { label: 'Nikola Tesla',      article: 'Nikola_Tesla' },
+      { label: 'Charles Darwin',    article: 'Charles_Darwin' },
+      { label: 'Galileo Galilei',   article: 'Galileo_Galilei' },
+      { label: 'Sigmund Freud',     article: 'Sigmund_Freud' },
+      { label: 'Carl Sagan',        article: 'Carl_Sagan' },
+      { label: 'Richard Feynman',   article: 'Richard_Feynman' },
+    ]
+  },
+  {
+    category: 'Tweede Wereldoorlog',
+    question: 'Welk WO2-onderwerp wordt het meest opgezocht?',
+    options: [
+      { label: 'Adolf Hitler',           article: 'Adolf_Hitler' },
+      { label: 'D-Day',                  article: 'Operatie_Overlord' },
+      { label: 'Anne Frank',             article: 'Anne_Frank' },
+      { label: 'Tweede Wereldoorlog',    article: 'Tweede_Wereldoorlog' },
+      { label: 'Holocaust',              article: 'Holocaust' },
+      { label: 'Winston Churchill',      article: 'Winston_Churchill' },
+      { label: 'Hongerwinter',           article: 'Hongerwinter' },
+      { label: 'Slag om Arnhem',         article: 'Slag_om_Arnhem' },
+      { label: 'Atoombom op Hiroshima',  article: 'Atoombom_op_Hiroshima_en_Nagasaki' },
+      { label: 'Operatie Market Garden', article: 'Operatie_Market_Garden' },
+    ]
+  },
+  {
+    category: 'Wereldleiders',
+    question: 'Welke wereldleider werd het meest opgezocht?',
+    options: [
+      { label: 'Joe Biden',          article: 'Joe_Biden' },
+      { label: 'Donald Trump',       article: 'Donald_Trump' },
+      { label: 'Vladimir Poetin',    article: 'Vladimir_Poetin' },
+      { label: 'Xi Jinping',         article: 'Xi_Jinping' },
+      { label: 'Emmanuel Macron',    article: 'Emmanuel_Macron' },
+      { label: 'Volodymyr Zelensky', article: 'Volodymyr_Zelensky' },
+      { label: 'Narendra Modi',      article: 'Narendra_Modi' },
+      { label: 'Olaf Scholz',        article: 'Olaf_Scholz' },
+      { label: 'Giorgia Meloni',     article: 'Giorgia_Meloni' },
+      { label: 'Friedrich Merz',     article: 'Friedrich_Merz' },
+    ]
+  },
+  {
+    category: 'Sociale media',
+    question: 'Welk platform had het meest verkeer?',
+    options: [
+      { label: 'Facebook',  article: 'Facebook' },
+      { label: 'Instagram', article: 'Instagram' },
+      { label: 'TikTok',    article: 'TikTok' },
+      { label: 'YouTube',   article: 'YouTube' },
+      { label: 'Twitter',   article: 'Twitter' },
+      { label: 'Snapchat',  article: 'Snapchat' },
+      { label: 'LinkedIn',  article: 'LinkedIn' },
+      { label: 'Reddit',    article: 'Reddit' },
+      { label: 'Pinterest', article: 'Pinterest' },
+      { label: 'WhatsApp',  article: 'WhatsApp' },
+    ]
+  },
+  {
+    category: 'Smartphone-modellen',
+    question: 'Welk telefoonmodel werd het meest opgezocht?',
+    options: [
+      { label: 'iPhone 15',        article: 'IPhone_15' },
+      { label: 'iPhone 14',        article: 'IPhone_14' },
+      { label: 'iPhone 13',        article: 'IPhone_13' },
+      { label: 'Samsung Galaxy S24', article: 'Samsung_Galaxy_S24' },
+      { label: 'Samsung Galaxy S23', article: 'Samsung_Galaxy_S23' },
+      { label: 'Google Pixel 8',   article: 'Pixel_8' },
+      { label: 'Huawei P60',       article: 'Huawei_P60' },
+      { label: 'OnePlus 11',       article: 'OnePlus_11' },
+      { label: 'Xiaomi 13',        article: 'Xiaomi_13' },
+      { label: 'Nothing Phone (1)', article: 'Nothing_Phone_(1)' },
+    ]
+  },
+  {
+    category: 'Romeinse Rijk',
+    question: 'Welk Romeins onderwerp wordt het meest opgezocht?',
+    options: [
+      { label: 'Romeinse Rijk',    article: 'Romeinse_Rijk' },
+      { label: 'Julius Caesar',    article: 'Julius_Caesar' },
+      { label: 'Augustus',         article: 'Augustus_(keizer)' },
+      { label: 'Nero',             article: 'Nero_(keizer)' },
+      { label: 'Marcus Aurelius',  article: 'Marcus_Aurelius_(keizer)' },
+      { label: 'Cleopatra',        article: 'Cleopatra_VII' },
+      { label: 'Pompeii',          article: 'Pompeï' },
+      { label: 'Colosseum',        article: 'Colosseum' },
+      { label: 'Hannibal Barkas',  article: 'Hannibal_Barkas' },
+      { label: 'Gladiator',        article: 'Gladiator' },
+    ]
+  },
+  {
+    category: 'Reizen & locaties',
+    question: 'Welke reisbestemming had het meest verkeer?',
+    options: [
+      { label: 'Eiffeltoren',     article: 'Eiffeltoren' },
+      { label: 'Colosseum',       article: 'Colosseum' },
+      { label: 'Big Ben',         article: 'Big_Ben' },
+      { label: 'Vrijheidsbeeld',  article: 'Vrijheidsbeeld' },
+      { label: 'Taj Mahal',       article: 'Taj_Mahal' },
+      { label: 'Piramide van Gizeh', article: 'Piramide_van_Cheops' },
+      { label: 'Chinese Muur',    article: 'Chinese_Muur' },
+      { label: 'Machu Picchu',    article: 'Machu_Picchu' },
+      { label: 'Niagarawatervallen', article: 'Niagarawatervallen' },
+      { label: 'Sagrada Família', article: 'Sagrada_Família' },
+    ]
+  },
+];
+
+// =====================================================================
+// RANKINGS — Top-5 ordering rounds
+// Each ranking: 5 items in a definitive order based on `criterion`.
+// `items` is in the CORRECT order (highest → lowest of the criterion).
+// During play the items are shuffled; team places them back in order.
+// Score = number of positions correct (0..5) = steps awarded.
+// =====================================================================
+const RANKINGS = [
+  {
+    category: 'Sterftecijfers',
+    criterion: 'Verantwoordelijk voor de meeste doden (geschat, in miljoenen)',
+    items: [
+      { name: 'Mao Zedong',   value: '40–80 mln (Grote Sprong)' },
+      { name: 'Jozef Stalin', value: '20–25 mln' },
+      { name: 'Adolf Hitler', value: '11–17 mln (Holocaust)' },
+      { name: 'Genghis Khan', value: '~10 mln' },
+      { name: 'Leopold II',   value: '~10 mln (Congo)' },
+    ]
+  },
+  {
+    category: 'Wereldbevolking',
+    criterion: 'Bevolking — meest naar minst (2024)',
+    items: [
+      { name: 'India',           value: '1,42 miljard' },
+      { name: 'China',           value: '1,41 miljard' },
+      { name: 'Verenigde Staten', value: '335 miljoen' },
+      { name: 'Indonesië',       value: '278 miljoen' },
+      { name: 'Pakistan',        value: '241 miljoen' },
+    ]
+  },
+  {
+    category: 'Oppervlakte',
+    criterion: 'Grootste land in oppervlakte — meest naar minst (km²)',
+    items: [
+      { name: 'Rusland',          value: '17,1 mln km²' },
+      { name: 'Canada',           value: '10,0 mln km²' },
+      { name: 'Verenigde Staten', value: '9,8 mln km²' },
+      { name: 'China',            value: '9,6 mln km²' },
+      { name: 'Brazilië',         value: '8,5 mln km²' },
+    ]
+  },
+  {
+    category: 'Hoogste gebouwen',
+    criterion: 'Hoogste gebouw ter wereld — hoogst naar laagst',
+    items: [
+      { name: 'Burj Khalifa, Dubai',       value: '828 m' },
+      { name: 'Merdeka 118, Kuala Lumpur', value: '679 m' },
+      { name: 'Shanghai Tower',            value: '632 m' },
+      { name: 'Mekka Royal Clock Tower',   value: '601 m' },
+      { name: 'Ping An Finance Center',    value: '599 m' },
+    ]
+  },
+  {
+    category: 'Langste rivieren',
+    criterion: 'Langste rivier ter wereld — langst naar kortst',
+    items: [
+      { name: 'Nijl',        value: '6.650 km' },
+      { name: 'Amazone',     value: '6.400 km' },
+      { name: 'Yangtze',     value: '6.300 km' },
+      { name: 'Mississippi', value: '6.275 km' },
+      { name: 'Jenisej',     value: '5.539 km' },
+    ]
+  },
+  {
+    category: 'Bestverkochte muziekartiesten',
+    criterion: 'Meest verkochte muziekartiest ooit — meest naar minst (officiële verkopen wereldwijd)',
+    items: [
+      { name: 'The Beatles',     value: '600+ mln' },
+      { name: 'Elvis Presley',   value: '500+ mln' },
+      { name: 'Michael Jackson', value: '400+ mln' },
+      { name: 'Madonna',         value: '300+ mln' },
+      { name: 'Elton John',      value: '300+ mln' },
+    ]
+  },
+  {
+    category: 'Hoogste bergen',
+    criterion: 'Hoogste berg ter wereld — hoogst naar laagst',
+    items: [
+      { name: 'Mount Everest',  value: '8.849 m' },
+      { name: 'K2',             value: '8.611 m' },
+      { name: 'Kangchenjunga',  value: '8.586 m' },
+      { name: 'Lhotse',         value: '8.516 m' },
+      { name: 'Makalu',         value: '8.485 m' },
+    ]
+  },
+  {
+    category: 'Olympische medailles',
+    criterion: 'Meeste olympische gouden medailles — landen aller tijden',
+    items: [
+      { name: 'Verenigde Staten', value: '1.180+ goud' },
+      { name: 'Sovjet-Unie',      value: '440 goud' },
+      { name: 'Duitsland',        value: '305+ goud' },
+      { name: 'Groot-Brittannië', value: '290+ goud' },
+      { name: 'China',            value: '285+ goud' },
+    ]
+  },
+  {
+    category: 'Voetbal: WK-winnaars',
+    criterion: 'Meeste WK-titels (voetbal mannen)',
+    items: [
+      { name: 'Brazilië',           value: '5 titels' },
+      { name: 'Duitsland',          value: '4 titels' },
+      { name: 'Italië',             value: '4 titels' },
+      { name: 'Argentinië',         value: '3 titels' },
+      { name: 'Frankrijk',          value: '2 titels' },
+    ]
+  },
+  {
+    category: 'Bestverdienende films',
+    criterion: 'Meeste box-office wereldwijd — meest naar minst',
+    items: [
+      { name: 'Avatar (2009)',          value: '$2,92 mld' },
+      { name: 'Avengers: Endgame',      value: '$2,80 mld' },
+      { name: 'Avatar: The Way of Water', value: '$2,32 mld' },
+      { name: 'Titanic (1997)',         value: '$2,26 mld' },
+      { name: 'Star Wars: The Force Awakens', value: '$2,07 mld' },
+    ]
+  },
+  {
+    category: 'Snelste landdieren',
+    criterion: 'Snelste landdier — snelst naar langzaamst',
+    items: [
+      { name: 'Cheetah',         value: '110 km/u' },
+      { name: 'Pronghorn-antiloop', value: '88 km/u' },
+      { name: 'Springbok',       value: '88 km/u' },
+      { name: 'Leeuw',           value: '80 km/u' },
+      { name: 'Thomson-gazelle', value: '80 km/u' },
+    ]
+  },
+  {
+    category: 'Tech-bedrijven naar marktwaarde',
+    criterion: 'Hoogste marktwaarde (mid 2025) — meest naar minst',
+    items: [
+      { name: 'Apple',     value: '~$3,4 bln' },
+      { name: 'Microsoft', value: '~$3,2 bln' },
+      { name: 'Nvidia',    value: '~$3,0 bln' },
+      { name: 'Alphabet',  value: '~$2,1 bln' },
+      { name: 'Amazon',    value: '~$1,9 bln' },
+    ]
+  },
+  {
+    category: 'F1-titels',
+    criterion: 'Meeste Formule 1 wereldtitels (coureurs)',
+    items: [
+      { name: 'Lewis Hamilton',     value: '7 titels' },
+      { name: 'Michael Schumacher', value: '7 titels' },
+      { name: 'Juan Manuel Fangio', value: '5 titels' },
+      { name: 'Alain Prost',        value: '4 titels' },
+      { name: 'Max Verstappen',     value: '4 titels' },
+    ]
+  },
+  {
+    category: 'Champions League',
+    criterion: 'Meeste Champions League / Europa Cup I titels (clubs)',
+    items: [
+      { name: 'Real Madrid',        value: '15 titels' },
+      { name: 'AC Milan',           value: '7 titels' },
+      { name: 'Bayern München',     value: '6 titels' },
+      { name: 'Liverpool',          value: '6 titels' },
+      { name: 'FC Barcelona',       value: '5 titels' },
+    ]
+  },
+  {
+    category: 'Grootste steden',
+    criterion: 'Grootste steden van de wereld (metro-bevolking)',
+    items: [
+      { name: 'Tokyo',           value: '37 mln' },
+      { name: 'Delhi',           value: '33 mln' },
+      { name: 'Shanghai',        value: '29 mln' },
+      { name: 'São Paulo',       value: '22 mln' },
+      { name: 'Mexico-Stad',     value: '22 mln' },
+    ]
+  },
+  {
+    category: 'Drukste vliegvelden',
+    criterion: 'Meeste passagiers per jaar (2023)',
+    items: [
+      { name: 'Atlanta (ATL)',         value: '105 mln' },
+      { name: 'Dubai (DXB)',           value: '87 mln' },
+      { name: 'Dallas–Fort Worth',     value: '82 mln' },
+      { name: 'Tokyo Haneda (HND)',    value: '79 mln' },
+      { name: 'London Heathrow (LHR)', value: '79 mln' },
+    ]
+  },
+  {
+    category: 'Hoogste watervallen',
+    criterion: 'Hoogste waterval ter wereld — totale hoogte',
+    items: [
+      { name: 'Angel Falls (Venezuela)',  value: '979 m' },
+      { name: 'Tugela Falls (Z-Afrika)',  value: '948 m' },
+      { name: 'Tres Hermanas (Peru)',     value: '914 m' },
+      { name: 'Olo\'upena (Hawaii)',      value: '900 m' },
+      { name: 'Yumbilla (Peru)',          value: '896 m' },
+    ]
+  },
+  {
+    category: 'Grootste eilanden',
+    criterion: 'Grootste eilanden ter wereld — oppervlakte',
+    items: [
+      { name: 'Groenland',     value: '2.166.000 km²' },
+      { name: 'Nieuw-Guinea',  value: '785.000 km²' },
+      { name: 'Borneo',        value: '748.000 km²' },
+      { name: 'Madagaskar',    value: '587.000 km²' },
+      { name: 'Baffin Island', value: '507.000 km²' },
+    ]
+  },
+  {
+    category: 'Meest gesproken talen',
+    criterion: 'Meest gesproken talen ter wereld (totale sprekers)',
+    items: [
+      { name: 'Engels',     value: '~1,5 mld' },
+      { name: 'Mandarijn',  value: '~1,1 mld' },
+      { name: 'Hindi',      value: '~600 mln' },
+      { name: 'Spaans',     value: '~560 mln' },
+      { name: 'Arabisch',   value: '~270 mln' },
+    ]
+  },
+  {
+    category: 'Bestverkochte automerken',
+    criterion: 'Meest verkochte automerken wereldwijd (2023)',
+    items: [
+      { name: 'Toyota',     value: '11,2 mln' },
+      { name: 'Volkswagen', value: '9,2 mln' },
+      { name: 'Hyundai-Kia', value: '7,3 mln' },
+      { name: 'Stellantis', value: '6,4 mln' },
+      { name: 'GM',         value: '6,2 mln' },
+    ]
+  },
+  {
+    category: 'UNESCO Werelderfgoed',
+    criterion: 'Meeste UNESCO Werelderfgoedlocaties per land (2024)',
+    items: [
+      { name: 'Italië',           value: '60' },
+      { name: 'China',            value: '59' },
+      { name: 'Duitsland',        value: '54' },
+      { name: 'Frankrijk',        value: '53' },
+      { name: 'Spanje',           value: '50' },
+    ]
+  },
+  {
+    category: 'Diepste meren',
+    criterion: 'Diepste meren ter wereld — maximale diepte',
+    items: [
+      { name: 'Baikalmeer (Rusland)',     value: '1.642 m' },
+      { name: 'Tanganyikameer (Afrika)',  value: '1.470 m' },
+      { name: 'Kaspische Zee',            value: '1.025 m' },
+      { name: 'Vostok Subglaciaal Meer',  value: '900 m' },
+      { name: 'Malawimeer',               value: '706 m' },
+    ]
+  },
+  {
+    category: 'Nobelprijswinnaars',
+    criterion: 'Meeste Nobelprijswinnaars per land (totaal)',
+    items: [
+      { name: 'Verenigde Staten', value: '~410' },
+      { name: 'Verenigd Koninkrijk', value: '~140' },
+      { name: 'Duitsland',        value: '~115' },
+      { name: 'Frankrijk',        value: '~75' },
+      { name: 'Zweden',           value: '~33' },
+    ]
+  },
+  {
+    category: 'Console-verkopen',
+    criterion: 'Bestverkochte gameconsoles aller tijden — wereldwijd',
+    items: [
+      { name: 'PlayStation 2',       value: '160 mln' },
+      { name: 'Nintendo DS',         value: '154 mln' },
+      { name: 'Nintendo Switch',     value: '143 mln' },
+      { name: 'Game Boy + Color',    value: '119 mln' },
+      { name: 'PlayStation 4',       value: '117 mln' },
+    ]
+  },
+  {
+    category: 'Snelste vogels',
+    criterion: 'Snelste vogels ter wereld (duikvlucht / horizontale snelheid)',
+    items: [
+      { name: 'Slechtvalk',     value: '~390 km/u (duik)' },
+      { name: 'Steenarend',     value: '~240 km/u' },
+      { name: 'Aalscholverachtig', value: '~170 km/u' },
+      { name: 'Witkeel-rotszwaluw', value: '~170 km/u' },
+      { name: 'Zwarte gier',    value: '~120 km/u' },
+    ]
+  },
+  {
+    category: 'Bevolkingsdichtheid',
+    criterion: 'Meest dichtbevolkte landen — inwoners per km² (excl. mini-staten)',
+    items: [
+      { name: 'Bangladesh',  value: '~1.265' },
+      { name: 'Zuid-Korea',  value: '~530' },
+      { name: 'Nederland',   value: '~525' },
+      { name: 'India',       value: '~470' },
+      { name: 'België',      value: '~385' },
+    ]
+  },
+  {
+    category: 'Grootste woestijnen',
+    criterion: 'Grootste woestijnen ter wereld (incl. polair)',
+    items: [
+      { name: 'Antarctica (polair)', value: '14,2 mln km²' },
+      { name: 'Arctische woestijn',  value: '13,9 mln km²' },
+      { name: 'Sahara',              value: '9,2 mln km²' },
+      { name: 'Australische woestijn', value: '2,7 mln km²' },
+      { name: 'Arabische woestijn',  value: '2,3 mln km²' },
+    ]
+  },
+  {
+    category: 'Streaming abonnees',
+    criterion: 'Streamingdiensten naar abonnees wereldwijd (2024)',
+    items: [
+      { name: 'Netflix',           value: '283 mln' },
+      { name: 'Amazon Prime Video', value: '200 mln' },
+      { name: 'Disney+',           value: '154 mln' },
+      { name: 'HBO Max',           value: '103 mln' },
+      { name: 'Paramount+',        value: '77 mln' },
+    ]
+  },
+  {
+    category: 'Sociale media gebruikers',
+    criterion: 'Maandelijkse actieve gebruikers (2024)',
+    items: [
+      { name: 'Facebook',  value: '~3,0 mld' },
+      { name: 'YouTube',   value: '~2,5 mld' },
+      { name: 'WhatsApp',  value: '~2,0 mld' },
+      { name: 'Instagram', value: '~2,0 mld' },
+      { name: 'TikTok',    value: '~1,6 mld' },
+    ]
+  },
+];
+
+/* ------------------------- ROUND DEFINITIONS ------------------------ */
+// Each round has: key, label, themeClass, kind, render fn
+const ROUNDS = [
+  { key: 'math',       label: 'Rekensommen',         emoji: '🧮', theme: 'theme-math',      kind: 'team' },
+  { key: 'capital',    label: 'Hoofdsteden',         emoji: '🏛️', theme: 'theme-geo',       kind: 'team' },
+  { key: 'flag',       label: 'Vlaggen Raden',       emoji: '🚩', theme: 'theme-geo',       kind: 'team' },
+  { key: 'silhouette', label: 'Land Silhouet',       emoji: '🗺️', theme: 'theme-geo',       kind: 'team' },
+  { key: 'logo',       label: 'Merk-Logo',           emoji: '🏷️', theme: 'theme-logo',      kind: 'team' },
+  { key: 'revenue',    label: 'Bedrijfsomzet',       emoji: '💰', theme: 'theme-revenue',   kind: 'all'  },
+  { key: 'history',    label: 'Tijdlijn',            emoji: '🕰️', theme: 'theme-history',   kind: 'all'  },
+  { key: 'knowledge',  label: 'Algemene Kennis',     emoji: '🧠', theme: 'theme-knowledge', kind: 'team' },
+  { key: '30s',        label: '30 Seconden',         emoji: '⏱️', theme: 'theme-30s',       kind: 'team' },
+  { key: 'draw',       label: 'Tekenen & Raden',     emoji: '🎨', theme: 'theme-draw',      kind: 'team' },
+  { key: 'map',        label: 'Wereldkaart',         emoji: '🛰️', theme: 'theme-map',       kind: 'all'  },
+  { key: 'popularity', label: 'Wat zoekt Nederland?', emoji: '🔥', theme: 'theme-pop',       kind: 'all'  },
+  { key: 'ranking',    label: 'Top 5 Ranglijst',     emoji: '📊', theme: 'theme-rank',      kind: 'team' },
+];
+
+/* ---------------------------- UTILITIES ----------------------------- */
+const $ = (sel) => document.querySelector(sel);
+const $$ = (sel) => Array.from(document.querySelectorAll(sel));
+const app = () => document.getElementById('app');
+const rand = (n) => Math.floor(Math.random() * n);
+const pick = (arr) => arr[rand(arr.length)];
+
+// Track recently-seen items per pool key so the same question doesn't repeat
+// until ~80% of the pool has been used. Returns a fresh item.
+const _seenPools = {};
+function pickFresh(arr, key) {
+  if (!arr.length) return null;
+  if (!_seenPools[key]) _seenPools[key] = new Set();
+  const seen = _seenPools[key];
+  // Reset when most of the pool has been used (keep last few to avoid back-to-back)
+  if (seen.size >= Math.max(1, Math.floor(arr.length * 0.8))) {
+    // Keep only the last 2 to prevent immediate repeats after reset
+    const arrSeen = Array.from(seen);
+    seen.clear();
+    arrSeen.slice(-2).forEach(s => seen.add(s));
+  }
+  // Pick fresh
+  const fresh = arr.filter(item => !seen.has(itemKey(item)));
+  const choice = pick(fresh.length ? fresh : arr);
+  seen.add(itemKey(choice));
+  return choice;
+}
+function itemKey(item) {
+  if (item == null) return 'null';
+  if (typeof item === 'object') return item.name || item.slug || item.article || item.category || item.q || JSON.stringify(item);
+  return String(item);
+}
+
+// ISO 3166-1 alpha-2 → flag emoji (using regional indicator symbols)
+function isoToEmoji(iso) {
+  if (!iso || iso.length !== 2) return '🏳️';
+  const codePoints = iso.toUpperCase().split('').map(c => 0x1F1E6 + c.charCodeAt(0) - 65);
+  return String.fromCodePoint(...codePoints);
+}
+const shuffle = (arr) => {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = rand(i + 1);
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+};
+const decodeHTML = (s) => {
+  const t = document.createElement('textarea');
+  t.innerHTML = s;
+  return t.value;
+};
+function el(tag, attrs = {}, ...children) {
+  const e = document.createElement(tag);
+  for (const k in attrs) {
+    const v = attrs[k];
+    if (k === 'class') e.className = v;
+    else if (k === 'style') e.setAttribute('style', v);
+    else if (k.startsWith('on') && typeof v === 'function') e.addEventListener(k.slice(2), v);
+    else if (k === 'html') e.innerHTML = v;
+    else if (typeof v === 'boolean') {
+      // Boolean attribute: only set when true; presence-only semantics in HTML
+      if (v) e.setAttribute(k, '');
+    }
+    else if (v != null) e.setAttribute(k, v);
+  }
+  for (const c of children) {
+    if (c == null) continue;
+    if (typeof c === 'string') e.appendChild(document.createTextNode(c));
+    else e.appendChild(c);
+  }
+  return e;
+}
+function render(node) {
+  const root = app();
+  root.innerHTML = '';
+  root.appendChild(node);
+}
+
+/* ------------------------------ API --------------------------------- */
+async function fetchTrivia() {
+  // Try Open Trivia DB (English), then fall back to curated Dutch
+  // Map difficulty 1..4 to API levels (which are easy/medium/hard)
+  const d = State.difficulty;
+  const apiDiff = d === 1 ? 'easy' : (d === 2 ? 'medium' : 'hard');
+  try {
+    const res = await fetch(`https://opentdb.com/api.php?amount=1&type=multiple&difficulty=${apiDiff}`);
+    const data = await res.json();
+    if (data.results && data.results.length) {
+      const q = data.results[0];
+      return {
+        q: decodeHTML(q.question),
+        o: shuffle([decodeHTML(q.correct_answer), ...q.incorrect_answers.map(decodeHTML)]),
+        correctText: decodeHTML(q.correct_answer),
+        source: 'Open Trivia DB (EN)'
+      };
+    }
+  } catch (e) { console.warn('trivia api fail', e); }
+  return null;
+}
+
+/* ------------------------- ROUND QUEUE LOGIC ------------------------ */
+function buildRoundQueue() {
+  // Filter by user-selected rounds
+  const enabled = State.enabledRounds && State.enabledRounds.size
+    ? ROUNDS.filter(r => State.enabledRounds.has(r.key))
+    : ROUNDS.slice();
+  const pool = enabled.length ? enabled : ROUNDS.slice();
+  // Shuffle for variety
+  const queue = shuffle(pool.slice());
+  // Extend to cover long games (up to 80 rounds)
+  while (queue.length < 80) queue.push(pick(pool));
+  return queue;
+}
+
+function nextRound() {
+  if (!State.roundQueue.length) State.roundQueue = buildRoundQueue();
+  // Avoid same round 2 in a row
+  let r = State.roundQueue.shift();
+  if (State.history.length && State.history[State.history.length-1] === r.key && State.roundQueue.length) {
+    State.roundQueue.push(r);
+    r = State.roundQueue.shift();
+  }
+  State.history.push(r.key);
+  State.currentRound = r;
+  State.roundNumber++;
+  // Advance team-turn pointer
+  if (r.kind === 'team') {
+    State.currentTeamIndex = (State.currentTeamIndex + 1) % State.teams.length;
+  }
+  return r;
+}
+
+function checkWin() {
+  return State.teams.find(t => t.position >= State.finishLine);
+}
+
+/* --------------------------- RACE TRACK UI -------------------------- */
+function renderRaceTrack() {
+  // Outer stage wraps the actual track for 3D perspective + booth frame
+  const stage = el('div', { class: 'race-stage' });
+  const track = el('div', { class: 'race-track' });
+  // Info bar
+  const info = el('div', { class: 'race-info' },
+    el('div', { class: 'round-badge' }, `Ronde ${State.roundNumber}`),
+    el('div', { class: 'race-title' }, '🏜️ De Kamelenrace 🏁'),
+    el('div', { class: 'round-badge', style: 'background: var(--terracotta)' }, `Finish: ${State.finishLine} stappen`)
+  );
+  track.appendChild(info);
+
+  // Finish flag emoji
+  track.appendChild(el('div', { class: 'finish-flag' }, '🏁'));
+  track.appendChild(el('div', { class: 'finish-line' }));
+
+  // Lanes
+  State.teams.forEach((team, i) => {
+    const lane = el('div', { class: 'lane' });
+    lane.appendChild(el('div', { class: 'lane-track' }));
+    // Label
+    const label = el('div', {
+      class: 'lane-label',
+      style: `color: ${team.color}`
+    });
+    label.textContent = team.name;
+    lane.appendChild(label);
+    // Camel
+    const pctMax = State.finishLine;
+    const pos = Math.min(team.position, pctMax);
+    // Map position 0..finishLine to left% 14% .. 90%
+    const leftPct = 14 + (pos / pctMax) * 76;
+    const camel = el('div', {
+      class: 'camel',
+      style: `left: ${leftPct}%`
+    }, team.emoji);
+    lane.appendChild(camel);
+    track.appendChild(lane);
+  });
+
+  stage.appendChild(track);
+  return stage;
+}
+
+/* ---------------------------- SCREENS ------------------------------- */
+function renderSetup() {
+  State.teams = State.teams.length ? State.teams : [
+    { name: 'Team Sahara',   emoji: '🐪', color: TEAM_COLORS[0], position: 0 },
+    { name: 'Team Oase',     emoji: '🐎', color: TEAM_COLORS[1], position: 0 },
+  ];
+
+  const hero = el('div', { class: 'hero fade-in' },
+    el('div', { class: 'hero-sub' }, '~ pubquiz × races × algemene kennis ~'),
+    el('h1', { class: 'hero-title' }, 'Kamelenrace'),
+    el('p', { class: 'hero-meta' },
+      'Tien wisselende rondetypes, een eindeloze stroom aan vragen, en een racebaan in de woestijn. Goed antwoord = stapje vooruit. Wie het eerst de finish haalt wint.')
+  );
+
+  const teamsCard = el('div', { class: 'card card-glow', style: 'max-width: 720px; margin: 0 auto 20px' });
+  teamsCard.appendChild(el('h2', { style: 'font-size: 22px; margin-bottom: 4px' }, 'Wie doen er mee?'));
+  teamsCard.appendChild(el('p', { class: 'hint', style: 'margin-bottom: 16px' }, 'Voeg 2–8 teams toe. Klik op de emoji om te wisselen.'));
+
+  const list = el('div', { id: 'teamList' });
+  function redrawTeamList() {
+    list.innerHTML = '';
+    State.teams.forEach((t, idx) => {
+      const row = el('div', { class: 'team-row' });
+      // Emoji picker
+      const emojiBtn = el('button', {
+        class: 'team-emoji-pick',
+        style: `border: 3px solid ${t.color}`,
+        onclick: () => {
+          const cur = TEAM_EMOJIS.indexOf(t.emoji);
+          t.emoji = TEAM_EMOJIS[(cur + 1) % TEAM_EMOJIS.length];
+          redrawTeamList();
+        }
+      }, t.emoji);
+      row.appendChild(emojiBtn);
+      // Name input
+      const inp = el('input', {
+        class: 'input',
+        type: 'text',
+        value: t.name,
+        maxlength: 24
+      });
+      inp.addEventListener('input', (e) => { t.name = e.target.value; });
+      row.appendChild(inp);
+      // Remove
+      const rm = el('button', {
+        class: 'btn btn-ghost',
+        style: 'padding: 10px 12px',
+        onclick: () => {
+          if (State.teams.length <= 2) return alert('Minstens 2 teams nodig.');
+          State.teams.splice(idx, 1);
+          redrawTeamList();
+        }
+      }, '✕');
+      row.appendChild(rm);
+      list.appendChild(row);
+    });
+  }
+  redrawTeamList();
+  teamsCard.appendChild(list);
+
+  const addBtn = el('button', {
+    class: 'btn btn-secondary mt-4',
+    onclick: () => {
+      if (State.teams.length >= 8) return;
+      const i = State.teams.length;
+      State.teams.push({
+        name: `Team ${i+1}`,
+        emoji: TEAM_EMOJIS[i % TEAM_EMOJIS.length],
+        color: TEAM_COLORS[i % TEAM_COLORS.length],
+        position: 0
+      });
+      redrawTeamList();
+    }
+  }, '+ Team toevoegen');
+  teamsCard.appendChild(addBtn);
+
+  // Finish line slider
+  const finishCard = el('div', { class: 'card', style: 'max-width: 720px; margin: 0 auto 20px' });
+  finishCard.appendChild(el('h3', { style: 'font-size: 18px; margin-bottom: 12px' }, '🏁 Lengte van het potje'));
+  const finishRow = el('div', { class: 'flex items-center gap-4' });
+  const finishSlider = el('input', {
+    type: 'range', min: 4, max: 50, value: State.finishLine, class: 'slider', style: 'flex: 1'
+  });
+  const finishLabel = el('div', {
+    class: 'handwritten',
+    style: 'font-size: 32px; color: var(--terracotta); min-width: 140px; text-align: center'
+  }, `${State.finishLine} stappen`);
+  finishSlider.addEventListener('input', (e) => {
+    State.finishLine = +e.target.value;
+    finishLabel.textContent = `${State.finishLine} stappen`;
+  });
+  finishRow.appendChild(finishSlider);
+  finishRow.appendChild(finishLabel);
+  finishCard.appendChild(finishRow);
+  finishCard.appendChild(el('p', { class: 'hint mt-2' }, 'Tip: 8–12 stappen voor een avondvullend potje, 20+ voor een marathonsessie.'));
+
+  // Difficulty slider
+  const diffCard = el('div', { class: 'card', style: 'max-width: 720px; margin: 0 auto 20px' });
+  diffCard.appendChild(el('h3', { style: 'font-size: 18px; margin-bottom: 12px' }, '🎯 Moeilijkheidsgraad'));
+  const DIFFICULTIES = [
+    { lvl: 1, name: 'Makkelijk',   emoji: '😌', desc: 'Bekende vragen, kleine getallen, beroemde plekken'  },
+    { lvl: 2, name: 'Normaal',     emoji: '🙂', desc: 'Een gevarieerde mix — niet te zwaar, niet te licht' },
+    { lvl: 3, name: 'Pittig',      emoji: '🔥', desc: 'Grotere getallen, mindere bekende landen en steden' },
+    { lvl: 4, name: 'Expert',      emoji: '🧠', desc: 'Hard hoofdrekenen, obscure plekken, lastige rankings' },
+  ];
+  const diffGrid = el('div', { class: 'diff-grid' });
+  function redrawDiff() {
+    diffGrid.innerHTML = '';
+    DIFFICULTIES.forEach(d => {
+      const card = el('button', {
+        class: 'diff-btn' + (State.difficulty === d.lvl ? ' active' : ''),
+        onclick: () => { State.difficulty = d.lvl; redrawDiff(); }
+      });
+      card.appendChild(el('div', { class: 'diff-emoji' }, d.emoji));
+      card.appendChild(el('div', { class: 'diff-name' }, d.name));
+      card.appendChild(el('div', { class: 'diff-desc' }, d.desc));
+      diffGrid.appendChild(card);
+    });
+  }
+  redrawDiff();
+  diffCard.appendChild(diffGrid);
+
+  // Game modes selection — toggleable
+  if (!State.enabledRounds) {
+    State.enabledRounds = new Set(ROUNDS.map(r => r.key));
+  }
+  const modesCard = el('div', { class: 'card', style: 'max-width: 720px; margin: 0 auto 20px' });
+  modesCard.appendChild(el('h3', { style: 'font-size: 18px; margin-bottom: 4px' }, '🎲 Welke spellen doen mee?'));
+  modesCard.appendChild(el('p', { class: 'hint', style: 'margin-bottom: 14px' }, 'Klik om een spelvorm uit of aan te zetten. Minimaal 2 actief.'));
+  const modesGrid = el('div', { class: 'modes-grid' });
+  function redrawModes() {
+    modesGrid.innerHTML = '';
+    ROUNDS.forEach(r => {
+      const active = State.enabledRounds.has(r.key);
+      const tag = el('button', {
+        class: 'mode-tag' + (active ? ' active' : ''),
+        onclick: () => {
+          if (active) {
+            if (State.enabledRounds.size > 2) State.enabledRounds.delete(r.key);
+          } else {
+            State.enabledRounds.add(r.key);
+          }
+          redrawModes();
+        }
+      });
+      tag.appendChild(el('span', { class: 'mode-emoji' }, r.emoji));
+      tag.appendChild(el('span', { class: 'mode-label' }, r.label));
+      tag.appendChild(el('span', { class: 'mode-check' }, active ? '✓' : ''));
+      modesGrid.appendChild(tag);
+    });
+  }
+  redrawModes();
+  modesCard.appendChild(modesGrid);
+
+  // Start button
+  const startWrap = el('div', { class: 'text-center mt-6 mb-6' });
+  const startBtn = el('button', {
+    class: 'btn btn-primary btn-large pop-in',
+    onclick: startGame
+  }, '🏁 Start de race');
+  startWrap.appendChild(startBtn);
+
+  const container = el('div');
+  container.appendChild(hero);
+  container.appendChild(teamsCard);
+  container.appendChild(finishCard);
+  container.appendChild(diffCard);
+  container.appendChild(modesCard);
+  container.appendChild(startWrap);
+  render(container);
+}
+
+/* ---------------------------- START GAME ---------------------------- */
+function startGame() {
+  // Validate
+  if (State.teams.length < 2) return alert('Minstens 2 teams nodig');
+  State.teams.forEach((t, i) => {
+    if (!t.name.trim()) t.name = `Team ${i+1}`;
+    t.position = 0;
+    t.color = TEAM_COLORS[i % TEAM_COLORS.length];
+  });
+  State.roundNumber = 0;
+  State.currentTeamIndex = -1; // so nextRound() advances to 0
+  State.roundQueue = buildRoundQueue();
+  State.history = [];
+  startNextRound();
+}
+
+function startNextRound() {
+  // Check win first
+  const winner = checkWin();
+  if (winner) { return showGameOver(winner); }
+  const r = nextRound();
+  renderRoundScreen();
+  // Random easter egg: ~8% chance of German moustached man appearing
+  if (Math.random() < 0.08) {
+    setTimeout(showGermanMan, 1200);
+  }
+}
+
+// ======================================================================
+// 🥨 EASTER EGG: German moustache man popup
+// Slides in from the right with a Bavarian greeting, vanishes after a few sec
+// ======================================================================
+function showGermanMan() {
+  // Remove any existing
+  const old = document.getElementById('germanMan');
+  if (old) old.remove();
+  const phrases = [
+    'Hallo! Wie geht\'s?', 'Ach so!', 'Sehr gut!', 'Prost! 🍺',
+    'Wunderbar!', 'Achtung!', 'Wo ist das Bier?', 'Mein lieber Mann!',
+    'Donnerwetter!', 'Ja, natürlich!', 'Ich liebe Kamele!',
+    'Schnell, schnell!', 'Eins, zwei, drei!', 'Bitteschön!'
+  ];
+  const phrase = phrases[Math.floor(Math.random() * phrases.length)];
+
+  const wrap = el('div', { id: 'germanMan', class: 'german-man-pop' });
+  // SVG of a moustachioed German fellow (Bavarian style)
+  wrap.innerHTML = `
+    <div class="german-bubble">${phrase}</div>
+    <svg class="german-svg" viewBox="0 0 120 160" xmlns="http://www.w3.org/2000/svg">
+      <!-- Body / lederhosen -->
+      <rect x="32" y="100" width="56" height="50" rx="5" fill="#5a3a1f"/>
+      <rect x="32" y="100" width="56" height="10" fill="#8b6332"/>
+      <!-- Suspenders -->
+      <rect x="38" y="92" width="6" height="38" fill="#3a2410" transform="rotate(8 41 110)"/>
+      <rect x="76" y="92" width="6" height="38" fill="#3a2410" transform="rotate(-8 79 110)"/>
+      <!-- White shirt -->
+      <rect x="34" y="84" width="52" height="18" fill="#fdfaf0"/>
+      <!-- Head -->
+      <circle cx="60" cy="60" r="32" fill="#f0c8a8"/>
+      <!-- Hair -->
+      <path d="M30 50 Q35 28 60 26 Q85 28 90 50 L88 42 Q60 32 32 42 Z" fill="#5a3a1f"/>
+      <!-- Eyes -->
+      <circle cx="48" cy="58" r="3" fill="#2d1b0e"/>
+      <circle cx="72" cy="58" r="3" fill="#2d1b0e"/>
+      <!-- Rosy cheeks -->
+      <circle cx="42" cy="72" r="5" fill="#e08070" opacity="0.5"/>
+      <circle cx="78" cy="72" r="5" fill="#e08070" opacity="0.5"/>
+      <!-- THE moustache - big and curly -->
+      <path d="M40 78 Q44 76 50 78 Q55 84 60 80 Q65 84 70 78 Q76 76 80 78 Q76 86 68 86 Q60 84 60 84 Q52 84 52 86 Q44 86 40 78 Z"
+            fill="#5a3a1f"/>
+      <path d="M38 78 Q34 74 32 76 Q33 80 38 80 Z" fill="#5a3a1f"/>
+      <path d="M82 78 Q86 74 88 76 Q87 80 82 80 Z" fill="#5a3a1f"/>
+      <!-- Mouth (small smile) -->
+      <path d="M54 90 Q60 94 66 90" stroke="#2d1b0e" stroke-width="2" fill="none" stroke-linecap="round"/>
+      <!-- Tyrolean hat -->
+      <ellipse cx="60" cy="30" rx="36" ry="6" fill="#1a4d2e"/>
+      <path d="M40 30 Q40 12 60 10 Q80 12 80 30 Z" fill="#2a6741"/>
+      <!-- Feather -->
+      <path d="M75 18 Q86 8 90 14 Q88 20 75 22 Z" fill="#c44536"/>
+    </svg>
+  `;
+  document.body.appendChild(wrap);
+  setTimeout(() => {
+    wrap.classList.add('leaving');
+    setTimeout(() => wrap.remove(), 600);
+  }, 3200);
+}
+
+/* ------------------------ ROUND SCREEN SCAFFOLD --------------------- */
+function renderRoundScreen() {
+  const container = el('div', { class: 'fade-in' });
+  container.appendChild(renderRaceTrack());
+
+  // Round content card
+  const card = el('div', { class: 'card card-glow' });
+  card.appendChild(el('div', { class: `theme-strip ${State.currentRound.theme}` }));
+
+  // Top info: round chip + team turn (if applicable)
+  const top = el('div', { class: 'flex justify-between items-center mb-4', style: 'flex-wrap: wrap; gap: 12px' });
+  const chip = el('div', { class: 'round-chip' },
+    el('span', { style: 'font-size: 18px' }, State.currentRound.emoji),
+    el('span', null, State.currentRound.label)
+  );
+  top.appendChild(chip);
+
+  if (State.currentRound.kind === 'team') {
+    const t = State.teams[State.currentTeamIndex];
+    const turn = el('div', {
+      class: 'flex items-center gap-3',
+      style: `background: ${t.color}15; border: 2px solid ${t.color}55; padding: 6px 14px; border-radius: 999px`
+    });
+    turn.appendChild(el('span', { style: 'font-size: 24px' }, t.emoji));
+    turn.appendChild(el('span', { style: `font-weight: 700; color: ${t.color}` }, `${t.name} is aan de beurt`));
+    top.appendChild(turn);
+  } else {
+    top.appendChild(el('div', {
+      class: 'flex items-center gap-3',
+      style: 'background: var(--ink); color: var(--cream); padding: 6px 14px; border-radius: 999px; font-weight: 700'
+    }, '👥 Alle teams doen mee'));
+  }
+  card.appendChild(top);
+
+  // Content container
+  const stage = el('div', { id: 'roundStage', class: 'round-stage' });
+  card.appendChild(stage);
+  container.appendChild(card);
+  render(container);
+
+  // Render the actual round
+  renderRound(stage, State.currentRound);
+}
+
+/* --------------------- ROUND IMPLEMENTATIONS ------------------------ */
+async function renderRound(stage, round) {
+  stage.innerHTML = '<div class="text-center"><div class="spinner"></div><p class="mt-2 hint">Vraag wordt geladen…</p></div>';
+  try {
+    switch (round.key) {
+      case 'math':       return renderMath(stage);
+      case 'capital':    return await renderCapital(stage);
+      case 'flag':       return await renderFlag(stage);
+      case 'silhouette': return renderSilhouette(stage);
+      case 'logo':       return renderLogo(stage);
+      case 'revenue':    return renderRevenue(stage);
+      case 'history':    return renderHistory(stage);
+      case 'knowledge':  return await renderKnowledge(stage);
+      case '30s':        return render30s(stage);
+      case 'draw':       return renderDraw(stage);
+      case 'map':        return renderMap(stage);
+      case 'popularity': return await renderPopularity(stage);
+      case 'ranking':    return renderRanking(stage);
+    }
+  } catch (e) {
+    console.error(e);
+    stage.innerHTML = '<p class="text-center">Oeps, deze ronde wilde niet laden. Druk op overslaan.</p>';
+    stage.appendChild(el('div', { class: 'text-center mt-4' },
+      el('button', { class: 'btn btn-secondary', onclick: () => moveAndContinue([]) }, 'Overslaan →')
+    ));
+  }
+}
+
+/* ------------------------------ HELPERS ----------------------------- */
+function moveTeams(teamIndexes, steps = 1) {
+  // teamIndexes: array of {idx, steps}
+  if (Array.isArray(teamIndexes) && teamIndexes.length && typeof teamIndexes[0] === 'object') {
+    teamIndexes.forEach(({idx, steps}) => {
+      State.teams[idx].position += steps;
+    });
+  } else {
+    teamIndexes.forEach(idx => { State.teams[idx].position += steps; });
+  }
+}
+
+function showRoundResultAndContinue(html, moves = []) {
+  // Apply moves
+  moveTeams(moves);
+  // Show result screen briefly with animated race track
+  const container = el('div', { class: 'fade-in' });
+  container.appendChild(renderRaceTrack());
+  const card = el('div', { class: 'card card-glow text-center pop-in' });
+  card.innerHTML = html;
+  // Continue button
+  const btnWrap = el('div', { class: 'mt-6' });
+  const btn = el('button', {
+    class: 'btn btn-primary btn-large',
+    onclick: () => {
+      const winner = checkWin();
+      if (winner) showGameOver(winner);
+      else startNextRound();
+    }
+  }, 'Volgende ronde →');
+  btnWrap.appendChild(btn);
+  card.appendChild(btnWrap);
+  container.appendChild(card);
+  render(container);
+  // Make camels move animation kick in (they auto-animate via CSS transition)
+}
+
+function moveAndContinue(moves = []) {
+  showRoundResultAndContinue('<h2 style="font-family: Bricolage Grotesque; font-size: 32px; margin-bottom: 8px">Ronde voorbij!</h2>', moves);
+}
+
+function correctTeamResult(teamIdx, summaryHTML) {
+  // Movement: correct answer = +1 step
+  const t = State.teams[teamIdx];
+  const h = `
+    <div style="font-size: 56px">${t.emoji}</div>
+    <h2 style="font-family: Bricolage Grotesque; font-size: 32px; margin: 8px 0 4px">${t.name} → +1 stap!</h2>
+    <p class="text-soft">${summaryHTML || ''}</p>
+  `;
+  showRoundResultAndContinue(h, [teamIdx]);
+}
+
+function incorrectTeamResult(teamIdx, summaryHTML) {
+  const t = State.teams[teamIdx];
+  const h = `
+    <div style="font-size: 56px">😬</div>
+    <h2 style="font-family: Bricolage Grotesque; font-size: 28px; margin: 8px 0 4px">${t.name} blijft staan</h2>
+    <p class="text-soft">${summaryHTML || ''}</p>
+  `;
+  showRoundResultAndContinue(h, []);
+}
+
+/* ============================== MATH =============================== */
+function renderMath(stage) {
+  const d = State.difficulty;
+  const types = ['add', 'sub', 'mul', 'mix'];
+  const type = pick(types);
+  let q, a;
+
+  // Range scaling by difficulty
+  const addMax = [50, 150, 350, 700][d-1];
+  const subMax = [80, 300, 700, 1500][d-1];
+  const mulX   = [10, 18, 25, 40][d-1];
+  const mulY   = [8, 12, 15, 20][d-1];
+  const mixX   = [10, 18, 25, 35][d-1];
+  const mixY   = [6, 9, 12, 15][d-1];
+  const mixZ   = [8, 12, 18, 30][d-1];
+
+  if (type === 'add') {
+    const x = 10 + rand(addMax), y = 10 + rand(addMax);
+    q = `${x} + ${y}`; a = x + y;
+  } else if (type === 'sub') {
+    const x = 30 + rand(subMax), y = 10 + rand(x - 5);
+    q = `${x} − ${y}`; a = x - y;
+  } else if (type === 'mul') {
+    const x = 3 + rand(mulX), y = 3 + rand(mulY);
+    q = `${x} × ${y}`; a = x * y;
+  } else {
+    const x = 4 + rand(mixX), y = 3 + rand(mixY), z = 2 + rand(mixZ);
+    q = `${x} × ${y} − ${z}`; a = x * y - z;
+  }
+  // Generate 4 plausibly-close options
+  const opts = new Set([a]);
+  const distractorRange = Math.max(5, Math.round(a * 0.15));
+  while (opts.size < 4) {
+    const delta = (1 + rand(distractorRange)) * (Math.random() < 0.5 ? -1 : 1);
+    if (a + delta > 0 && !opts.has(a + delta)) opts.add(a + delta);
+  }
+  const choices = shuffle(Array.from(opts).map(String));
+
+  stage.innerHTML = '';
+  stage.appendChild(el('div', { class: 'question-block' },
+    el('p', { class: 'question-subtext' }, 'Bereken zo snel mogelijk'),
+    el('div', { class: 'question-text' }, q + ' = ?'),
+    buildMCGrid(choices, String(a), (correct) => {
+      if (correct) correctTeamResult(State.currentTeamIndex, `Antwoord: <strong>${a}</strong>`);
+      else incorrectTeamResult(State.currentTeamIndex, `Het juiste antwoord was <strong>${a}</strong>`);
+    })
+  ));
+}
+
+function buildMCGrid(choices, correctText, onAnswer) {
+  const grid = el('div', { class: 'mc-grid' });
+  choices.forEach((c, i) => {
+    const btn = el('button', {
+      class: 'mc-option',
+      type: 'button'
+    });
+    btn.appendChild(el('div', { class: 'letter' }, String.fromCharCode(65 + i)));
+    btn.appendChild(el('span', null, c));
+    btn.addEventListener('click', () => {
+      // Reveal correct/incorrect
+      grid.querySelectorAll('.mc-option').forEach(b => {
+        b.disabled = true;
+        b.classList.add('revealed');
+        const txt = b.querySelector('span').textContent;
+        if (txt === correctText) b.classList.add('correct');
+        else if (b === btn) b.classList.add('incorrect');
+      });
+      setTimeout(() => onAnswer(c === correctText), 1200);
+    });
+    grid.appendChild(btn);
+  });
+  return grid;
+}
+
+/* ============================ CAPITAL ============================== */
+async function renderCapital(stage) {
+  // Use embedded COUNTRY_DATA as primary source — works fully offline,
+  // no CORS issues, Dutch country names guaranteed.
+  const c = pickFresh(COUNTRY_DATA, 'capital');
+  const distractors = [];
+  while (distractors.length < 3) {
+    const d = pick(COUNTRY_DATA);
+    if (d.capital !== c.capital && !distractors.includes(d.capital)) {
+      distractors.push(d.capital);
+    }
+  }
+  const choices = shuffle([c.capital, ...distractors]);
+
+  stage.innerHTML = '';
+  stage.appendChild(el('div', { class: 'question-block' },
+    el('p', { class: 'question-subtext' }, 'Wat is de hoofdstad van'),
+    el('div', { class: 'question-text' }, `${isoToEmoji(c.iso)} ${c.name}?`),
+    buildMCGrid(choices, c.capital, (ok) => {
+      if (ok) correctTeamResult(State.currentTeamIndex, `Hoofdstad: <strong>${c.capital}</strong>`);
+      else incorrectTeamResult(State.currentTeamIndex, `Het was <strong>${c.capital}</strong>`);
+    })
+  ));
+}
+
+/* ============================== FLAG =============================== */
+async function renderFlag(stage) {
+  // Use embedded COUNTRY_DATA + flagcdn.com (no auth, no CORS, free CDN).
+  // Fallback chain: flagcdn → Wikimedia commons → emoji flag.
+  const c = pickFresh(COUNTRY_DATA, 'flag');
+  const distractors = [];
+  while (distractors.length < 3) {
+    const d = pick(COUNTRY_DATA);
+    if (d.name !== c.name && !distractors.includes(d.name)) distractors.push(d.name);
+  }
+  const choices = shuffle([c.name, ...distractors]);
+
+  stage.innerHTML = '';
+  const flagUrl = `https://flagcdn.com/w640/${c.iso}.png`;
+  const flagUrlAlt = `https://flagcdn.com/${c.iso}.svg`;
+  const flagImg = el('img', { class: 'flag-display', src: flagUrl, alt: 'vlag' });
+  let triedFallback = 0;
+  flagImg.onerror = () => {
+    triedFallback++;
+    if (triedFallback === 1) {
+      flagImg.src = flagUrlAlt;
+    } else {
+      // Final fallback: huge emoji flag in a styled box
+      const emojiFallback = el('div', {
+        class: 'flag-display flag-emoji-fallback'
+      }, isoToEmoji(c.iso));
+      flagImg.replaceWith(emojiFallback);
+    }
+  };
+  stage.appendChild(el('div', { class: 'question-block' },
+    el('p', { class: 'question-subtext' }, 'Welk land hoort bij deze vlag?'),
+    flagImg,
+    buildMCGrid(choices, c.name, (ok) => {
+      if (ok) correctTeamResult(State.currentTeamIndex, `Het was de vlag van <strong>${c.name}</strong>`);
+      else incorrectTeamResult(State.currentTeamIndex, `Het was <strong>${c.name}</strong>`);
+    })
+  ));
+}
+
+/* ========================== SILHOUETTE ============================== */
+// Country silhouette via mapsicon CDN (free, no key, MIT-licensed).
+// URL: https://cdn.jsdelivr.net/gh/djaiss/mapsicon@master/all/{iso}/512.png
+// Black silhouette on transparent background.
+function renderSilhouette(stage) {
+  // Filter by difficulty: easy = bekend, hard = obscure
+  // Country popularity proxy via ranking groups of COUNTRY_DATA:
+  const FAMOUS = new Set([
+    'nl','be','de','fr','es','it','gb','us','cn','jp','br','au','ru','in','ca','mx','eg','tr','gr','ie','pt','se','no','dk','fi','pl','at','ch','za'
+  ]);
+  const SOMEWHAT = new Set([
+    'pl','cz','hu','ro','bg','hr','rs','ua','sa','ir','iq','il','ma','dz','tn','ng','ke','et','gh','sn','nz','fj','jm','cu','cl','ar','pe','co','ve','kr','kp','pk','bd','id','th','vn','ph','my','sg'
+  ]);
+  let pool;
+  const d = State.difficulty;
+  if (d === 1) pool = COUNTRY_DATA.filter(c => FAMOUS.has(c.iso));
+  else if (d === 2) pool = COUNTRY_DATA.filter(c => FAMOUS.has(c.iso) || SOMEWHAT.has(c.iso));
+  else if (d === 3) pool = COUNTRY_DATA.filter(c => !FAMOUS.has(c.iso));
+  else pool = COUNTRY_DATA; // expert: any country, including very obscure
+  if (!pool.length) pool = COUNTRY_DATA;
+
+  const c = pickFresh(pool, 'silhouette');
+  const silUrl = `https://cdn.jsdelivr.net/gh/djaiss/mapsicon@master/all/${c.iso}/512.png`;
+  const silUrlAlt = `https://cdn.jsdelivr.net/gh/djaiss/mapsicon@master/all/${c.iso}/256.png`;
+
+  // 3 distractors with similar geographic difficulty
+  const distractors = [];
+  while (distractors.length < 3) {
+    const d2 = pick(pool);
+    if (d2.name !== c.name && !distractors.includes(d2.name)) distractors.push(d2.name);
+  }
+  const choices = shuffle([c.name, ...distractors]);
+
+  stage.innerHTML = '';
+  const silBox = el('div', { class: 'silhouette-display' });
+  const img = el('img', { src: silUrl, alt: 'silhouette', class: 'silhouette-img' });
+  let tries = 0;
+  img.onerror = () => {
+    tries++;
+    if (tries === 1) {
+      img.src = silUrlAlt;
+    } else {
+      // Last resort: emoji + ?
+      const fallback = el('div', { class: 'silhouette-emoji-fallback' }, '🗺️❓');
+      img.replaceWith(fallback);
+    }
+  };
+  silBox.appendChild(img);
+
+  stage.appendChild(el('div', { class: 'question-block' },
+    el('p', { class: 'question-subtext' }, 'Welk land is dit (de echte contour, niet op schaal)?'),
+    silBox,
+    el('div', { style: 'height: 12px' }),
+    buildMCGrid(choices, c.name, (ok) => {
+      if (ok) correctTeamResult(State.currentTeamIndex, `Het was <strong>${c.name}</strong> ${isoToEmoji(c.iso)}`);
+      else incorrectTeamResult(State.currentTeamIndex, `Het was <strong>${c.name}</strong> ${isoToEmoji(c.iso)}`);
+    })
+  ));
+}
+
+/* ============================== LOGO =============================== */
+function renderLogo(stage) {
+  const item = pickFresh(LOGOS, 'logo');
+  // Use simple-icons CDN — text-free brand marks with brand color
+  // Format: https://cdn.simpleicons.org/{slug}/{hex}
+  const logoUrl = `https://cdn.simpleicons.org/${item.slug}/${item.hex}`;
+  // Fallback: cdnjs raw SVG (will be black silhouette)
+  const fallback1 = `https://cdn.jsdelivr.net/npm/simple-icons@v16/icons/${item.slug}.svg`;
+
+  const distractors = [];
+  while (distractors.length < 3) {
+    const d = pick(LOGOS);
+    if (d.name !== item.name && !distractors.includes(d.name)) distractors.push(d.name);
+  }
+  const choices = shuffle([item.name, ...distractors]);
+
+  stage.innerHTML = '';
+  const logoBox = el('div', { class: 'logo-display' });
+  const img = el('img', { src: logoUrl, alt: 'logo' });
+  // Two-step fallback: simpleicons.org → jsdelivr raw → emoji placeholder
+  let triedFallback = false;
+  img.onerror = () => {
+    if (!triedFallback) {
+      triedFallback = true;
+      img.src = fallback1;
+    } else {
+      // Replace image with an emoji placeholder
+      const placeholder = el('div', { class: 'logo-emoji-fallback' }, '🏷️');
+      img.replaceWith(placeholder);
+    }
+  };
+  logoBox.appendChild(img);
+
+  stage.appendChild(el('div', { class: 'question-block' },
+    el('p', { class: 'question-subtext' }, 'Welk merk hoort bij dit logo?'),
+    logoBox,
+    el('div', { style: 'height: 16px' }),
+    buildMCGrid(choices, item.name, (ok) => {
+      if (ok) correctTeamResult(State.currentTeamIndex, `Logo van <strong>${item.name}</strong>`);
+      else incorrectTeamResult(State.currentTeamIndex, `Het was <strong>${item.name}</strong>`);
+    })
+  ));
+}
+
+/* ============================ REVENUE ============================== */
+function renderRevenue(stage) {
+  const item = pickFresh(REVENUES, "revenue");
+  // All teams: enter guess via slider; closest wins
+  renderSliderRound(stage, {
+    question: `Wat was de omzet van ${item.name} in ${item.year}?`,
+    subtext: 'Iedere kapitein schuift het schuifregelaar. Wie het dichtst bij zit krijgt een stap!',
+    icon: '💰',
+    min: 0,
+    max: Math.max(50, Math.ceil(item.revenue * 3)),
+    step: 0.1,
+    unit: item.unit,
+    format: (v) => `${(+v).toFixed(1)} ${item.unit}`,
+    answer: item.revenue,
+    answerText: `${item.revenue} ${item.unit}`
+  });
+}
+
+/* ============================ HISTORY ============================== */
+function renderHistory(stage) {
+  const item = pickFresh(HIST_EVENTS, "history");
+  renderSliderRound(stage, {
+    question: `Wanneer gebeurde dit?\n«${item.event}»`,
+    subtext: 'Schuif elke kapitein naar het jaar. Wie het dichtst bij zit krijgt de stap!',
+    icon: '🕰️',
+    min: 1500,
+    max: 2026,
+    step: 1,
+    unit: '',
+    format: (v) => `${Math.round(v)}`,
+    answer: item.year,
+    answerText: `${item.year}`
+  });
+}
+
+/* ----------------- Shared slider round (all teams) ----------------- */
+function renderSliderRound(stage, cfg) {
+  State.sliderAnswers = {};
+  stage.innerHTML = '';
+  const block = el('div', { class: 'question-block' });
+  block.appendChild(el('p', { class: 'question-subtext' }, cfg.subtext || ''));
+  const qt = el('div', { class: 'question-text' });
+  qt.innerHTML = `${cfg.icon || ''} ${cfg.question.replace('\n', '<br><span style="font-family: Caveat; color: var(--ink-soft); font-size: 0.7em">').replace(/«/, '“').replace(/»/, '”</span>')}`;
+  block.appendChild(qt);
+  stage.appendChild(block);
+
+  // Randomized turn order so it's not always team 0 first
+  const turnOrder = shuffle(State.teams.map((_, i) => i));
+  let turnIdx = 0;
+  const sliderHost = el('div', { id: 'sliderHost' });
+  stage.appendChild(sliderHost);
+
+  function showTurn() {
+    sliderHost.innerHTML = '';
+    if (turnIdx >= turnOrder.length) {
+      revealSliderResults(cfg);
+      return;
+    }
+    const teamIdx = turnOrder[turnIdx];
+    const t = State.teams[teamIdx];
+
+    // Privacy curtain
+    const curtain = el('div', { class: 'privacy-curtain' });
+    curtain.appendChild(el('div', { class: 'curtain-emoji' }, t.emoji));
+    curtain.appendChild(el('div', { class: 'curtain-name', style: `color: ${t.color}` }, `${t.name}`));
+    curtain.appendChild(el('div', { class: 'curtain-msg' }, 'Anderen → kijk weg!'));
+    curtain.appendChild(el('button', {
+      class: 'btn btn-primary btn-large',
+      onclick: () => { curtain.remove(); showSlider(teamIdx, t); }
+    }, '🎚️ Ik mag de slider zien'));
+    sliderHost.appendChild(curtain);
+  }
+
+  function showSlider(teamIdx, t) {
+    sliderHost.innerHTML = '';
+    const card = el('div', { class: 'slider-input-container' });
+    const teamHead = el('div', {
+      class: 'slider-team-head',
+      style: `background: ${t.color}; color: white`
+    });
+    teamHead.appendChild(el('span', { style: 'font-size: 22px' }, t.emoji));
+    teamHead.appendChild(el('span', { style: 'font-weight: 700; flex: 1' }, `${t.name} — schuif jouw gok`));
+    const timerCh = el('span', { class: 'turn-timer slider-timer' }, '30s');
+    teamHead.appendChild(timerCh);
+    card.appendChild(teamHead);
+
+    const initial = (cfg.min + cfg.max) / 2;
+    State.sliderAnswers[teamIdx] = initial;
+
+    const sliderRow = el('div', { class: 'team-slider-row-solo' });
+    const slider = el('input', {
+      type: 'range', min: cfg.min, max: cfg.max, step: cfg.step,
+      value: initial, class: 'slider', style: 'flex: 1'
+    });
+    const valDisplay = el('div', { class: 'slider-big-val' });
+    valDisplay.textContent = cfg.format(initial);
+    slider.addEventListener('input', (e) => {
+      const v = +e.target.value;
+      State.sliderAnswers[teamIdx] = v;
+      valDisplay.textContent = cfg.format(v);
+    });
+    sliderRow.appendChild(slider);
+    sliderRow.appendChild(valDisplay);
+    card.appendChild(sliderRow);
+
+    const range = el('div', { class: 'slider-range' });
+    range.appendChild(el('span', null, cfg.format(cfg.min)));
+    range.appendChild(el('span', null, cfg.format(cfg.max)));
+    card.appendChild(range);
+
+    const submitBtn = el('button', {
+      class: 'btn btn-primary btn-large',
+      style: 'margin-top: 16px',
+      onclick: () => {
+        clearInterval(timer);
+        turnIdx++;
+        showTurn();
+      }
+    }, '✅ Gok vastleggen');
+    card.appendChild(el('div', { class: 'text-center' }, submitBtn));
+
+    sliderHost.appendChild(card);
+
+    // 30 second timer
+    let timeLeft = 30;
+    const timer = setInterval(() => {
+      timeLeft--;
+      timerCh.textContent = `${timeLeft}s`;
+      if (timeLeft <= 5) timerCh.classList.add('urgent');
+      if (timeLeft <= 0) {
+        clearInterval(timer);
+        turnIdx++;
+        showTurn();
+      }
+    }, 1000);
+  }
+
+  showTurn();
+}
+
+function revealSliderResults(cfg) {
+  // Compute distances
+  const results = State.teams.map((t, idx) => ({
+    idx, name: t.name, emoji: t.emoji, color: t.color,
+    guess: State.sliderAnswers[idx],
+    distance: Math.abs(State.sliderAnswers[idx] - cfg.answer)
+  })).sort((a, b) => a.distance - b.distance);
+
+  // Award moves: winner +2, runner-up +1, exact tie share top spot
+  const minDist = results[0].distance;
+  const winners = results.filter(r => r.distance === minDist);
+  const runnerDist = results.find(r => r.distance > minDist)?.distance;
+  const runners = runnerDist !== undefined ? results.filter(r => r.distance === runnerDist) : [];
+
+  const moves = [];
+  winners.forEach(w => moves.push({ idx: w.idx, steps: 2 }));
+  if (winners.length === 1) runners.forEach(r => moves.push({ idx: r.idx, steps: 1 }));
+
+  // Build result HTML
+  let html = `<div style="font-size: 56px">${cfg.icon || '🎯'}</div>`;
+  html += `<h2 style="font-family: Bricolage Grotesque; font-size: 32px; margin: 8px 0 4px">Het antwoord was <span class="text-pop">${cfg.answerText}</span></h2>`;
+  html += `<div style="margin-top: 18px; text-align: left; max-width: 520px; margin-left: auto; margin-right: auto">`;
+  results.forEach((r, i) => {
+    const isWin = r.distance === minDist;
+    const isRunner = winners.length === 1 && runnerDist !== undefined && r.distance === runnerDist;
+    const trophy = isWin ? '🏆 +2' : (isRunner ? '🥈 +1' : '');
+    html += `<div class="result-row ${isWin ? 'winner' : ''}">
+      <span style="font-size: 26px">${r.emoji}</span>
+      <span style="font-weight: 700; color: ${r.color}; flex: 1">${r.name}</span>
+      <span style="font-variant-numeric: tabular-nums">${cfg.format(r.guess)}</span>
+      <span style="opacity: 0.6; font-size: 12px">Δ ${cfg.format(r.distance)}</span>
+      <span style="font-weight: 700; min-width: 60px; text-align: right">${trophy}</span>
+    </div>`;
+  });
+  html += '</div>';
+
+  showRoundResultAndContinue(html, moves);
+}
+
+/* ========================== KNOWLEDGE ============================== */
+async function renderKnowledge(stage) {
+  // 50/50: try API or use curated Dutch
+  let q = null;
+  if (Math.random() < 0.4) q = await fetchTrivia();
+  if (!q) {
+    const item = pickFresh(DUTCH_QUIZ, "dutchquiz");
+    q = {
+      q: item.q,
+      o: item.o.slice(),
+      correctText: item.o[item.a],
+      source: 'NL curated'
+    };
+    q.o = shuffle(q.o);
+  }
+  stage.innerHTML = '';
+  stage.appendChild(el('div', { class: 'question-block' },
+    el('p', { class: 'question-subtext' }, '🧠 Algemene kennis'),
+    el('div', { class: 'question-text' }, q.q),
+    buildMCGrid(q.o, q.correctText, (ok) => {
+      if (ok) correctTeamResult(State.currentTeamIndex, `Antwoord: <strong>${q.correctText}</strong>`);
+      else incorrectTeamResult(State.currentTeamIndex, `Het was <strong>${q.correctText}</strong>`);
+    })
+  ));
+}
+
+/* ============================ 30 SECONDS ========================== */
+function render30s(stage) {
+  const set = pickFresh(THIRTY_SECONDS, "30s");
+  const t = State.teams[State.currentTeamIndex];
+  stage.innerHTML = '';
+  // Pre-game banner
+  const banner = el('div', { class: 'team-banner' });
+  banner.appendChild(el('span', { class: 'team-banner-emoji' }, t.emoji));
+  const txt = el('div', { class: 'team-banner-text' });
+  txt.appendChild(document.createTextNode(`${t.name} beschrijft • Thema: ${set.theme}`));
+  txt.appendChild(el('small', null, '5 woorden in 30 seconden — IEDEREEN mag raden!'));
+  banner.appendChild(txt);
+  stage.appendChild(banner);
+
+  const intro = el('div', { class: 'card', style: 'background: var(--cream); text-align: center; margin-bottom: 16px' });
+  intro.innerHTML = `
+    <p class="hint">⚠️ <strong>${t.name}</strong> houdt de laptop vast en kan de woorden zien. De rest mag niet meekijken.</p>
+    <p class="hint mt-2">🎯 <strong>Free-for-all:</strong> alle teams mogen door elkaar roepen. Per goed-geraden woord kies je achteraf welk team punt(en) krijgt.</p>
+  `;
+  stage.appendChild(intro);
+
+  const startBtn = el('button', { class: 'btn btn-primary btn-large', onclick: () => begin30s(stage, set) }, '🚀 Start de 30 seconden!');
+  stage.appendChild(el('div', { class: 'text-center' }, startBtn));
+}
+
+function begin30s(stage, set) {
+  let words = set.words.slice();
+  let answered = []; // {word, status: 'correct'|'skipped'}
+  let secondsLeft = 30;
+  let interval;
+  const describerIdx = State.currentTeamIndex;
+
+  stage.innerHTML = '';
+  // Timer bar
+  const timerBar = el('div', { class: 'timer-bar' });
+  const fill = el('div', { class: 'timer-fill', style: 'width: 100%' });
+  timerBar.appendChild(fill);
+  const timerNum = el('div', {
+    class: 'text-center display',
+    style: 'font-size: 56px; color: var(--terracotta); margin-bottom: 8px'
+  }, '30');
+  stage.appendChild(timerNum);
+  stage.appendChild(timerBar);
+
+  // Word list
+  const listEl = el('div', { class: 'word-list' });
+  function refresh() {
+    listEl.innerHTML = '';
+    words.forEach((w, i) => {
+      const row = el('div', { class: 'word-item' });
+      row.appendChild(el('span', null, w));
+      const actions = el('div', { class: 'word-item-actions' });
+      actions.appendChild(el('button', {
+        class: 'word-icon-btn ok',
+        onclick: () => { answered.push({ word: w, status: 'correct' }); words.splice(i, 1); refresh(); }
+      }, '✓'));
+      actions.appendChild(el('button', {
+        class: 'word-icon-btn no',
+        onclick: () => { answered.push({ word: w, status: 'skipped' }); words.splice(i, 1); refresh(); }
+      }, '✕'));
+      row.appendChild(actions);
+      listEl.appendChild(row);
+    });
+    if (!words.length) endTimerPhase();
+  }
+  refresh();
+  stage.appendChild(listEl);
+
+  function endTimerPhase() {
+    clearInterval(interval);
+    // Show attribution screen: for each correctly-guessed word, ask which team got it
+    const correctWords = answered.filter(a => a.status === 'correct').map(a => a.word);
+    if (!correctWords.length) {
+      // Nobody got anything
+      const html = `<div style="font-size: 56px">🥲</div>
+        <h2 style="font-family: Bricolage Grotesque; font-size: 28px; margin: 8px 0 4px">Niemand kreeg een woord goed</h2>
+        <p class="text-soft">Geen stappen deze ronde.</p>`;
+      showRoundResultAndContinue(html, []);
+      return;
+    }
+    showAttribution(correctWords);
+  }
+
+  function showAttribution(correctWords) {
+    stage.innerHTML = '';
+    const attribs = {};   // word -> teamIdx (or null = describer team default)
+    correctWords.forEach(w => { attribs[w] = describerIdx; });
+
+    const header = el('div', { style: 'text-align:center; margin-bottom: 16px' });
+    header.appendChild(el('h2', { class: 'display', style: 'font-size: 28px; margin-bottom: 4px' },
+      '🎤 Wie raadde wat?'));
+    header.appendChild(el('p', { class: 'hint' },
+      'Klik bij elk woord het team aan dat het eerst goed raadde. Elk team krijgt +1 stap per woord.'));
+    stage.appendChild(header);
+
+    const wordsWrap = el('div', { class: 'attrib-list' });
+
+    function redraw() {
+      wordsWrap.innerHTML = '';
+      correctWords.forEach(w => {
+        const row = el('div', { class: 'attrib-row' });
+        row.appendChild(el('div', { class: 'attrib-word' }, w));
+        const teamRow = el('div', { class: 'attrib-teams' });
+        State.teams.forEach((t, idx) => {
+          const isSel = attribs[w] === idx;
+          const pill = el('button', {
+            class: 'attrib-pill' + (isSel ? ' active' : ''),
+            style: isSel
+              ? `background:${t.color}; border-color:${t.color}; color:white`
+              : `border-color:${t.color}55; color:${t.color}`,
+            onclick: () => { attribs[w] = idx; redraw(); }
+          });
+          pill.appendChild(el('span', { style: 'font-size: 16px' }, t.emoji));
+          pill.appendChild(el('span', null, t.name));
+          teamRow.appendChild(pill);
+        });
+        // "Niemand" option
+        const nonePill = el('button', {
+          class: 'attrib-pill' + (attribs[w] === null ? ' active' : ''),
+          style: attribs[w] === null
+            ? 'background:#777; border-color:#777; color:white'
+            : 'border-color:#aaa; color:#777',
+          onclick: () => { attribs[w] = null; redraw(); }
+        }, '— niemand');
+        teamRow.appendChild(nonePill);
+        row.appendChild(teamRow);
+        wordsWrap.appendChild(row);
+      });
+    }
+    redraw();
+    stage.appendChild(wordsWrap);
+
+    const submit = el('div', { class: 'text-center mt-6' },
+      el('button', {
+        class: 'btn btn-primary btn-large',
+        onclick: () => {
+          // Tally: per correct word, +1 to guesser team AND +1 to describer team (wederzijds)
+          const tally = {};
+          correctWords.forEach(w => {
+            // Describer's team always gets +1 per correct word
+            tally[describerIdx] = (tally[describerIdx] || 0) + 1;
+            // Guesser team also gets +1 (could be the same team as describer)
+            const t = attribs[w];
+            if (t !== null && t !== undefined && t !== describerIdx) {
+              tally[t] = (tally[t] || 0) + 1;
+            } else if (t === describerIdx) {
+              // If describer's own team guessed, they already got +1 above — give them another
+              // Wait: that would double-count. Re-think: describer always gets 1.
+              // If guesser != describer, guesser also gets 1. If guesser === describer team,
+              // they only get 1 (describer credit covers it). Adjust: only add for guesser if different.
+              // (Currently no-op since branch is empty in that case.)
+            }
+          });
+          const moves = Object.entries(tally).map(([idx, steps]) => ({ idx: +idx, steps }));
+
+          let html = `<div style="font-size: 56px">🎤</div>
+            <h2 class="display" style="font-size: 28px; margin: 8px 0 4px">${correctWords.length} ${correctWords.length === 1 ? 'woord' : 'woorden'} goed!</h2>
+            <p class="hint" style="margin-bottom: 14px">Beschrijver + rader krijgen elk een stap per goed woord</p>
+            <div style="margin-top: 8px; max-width: 540px; margin: 8px auto 0; text-align: left">`;
+          if (!moves.length) {
+            html += '<p class="text-soft text-center">Niemand kreeg punten toegewezen.</p>';
+          } else {
+            moves.sort((a, b) => b.steps - a.steps).forEach(m => {
+              const t = State.teams[m.idx];
+              const role = m.idx === describerIdx ? ' (beschrijver)' : '';
+              html += `<div class="result-row winner">
+                <span style="font-size: 24px">${t.emoji}</span>
+                <span style="font-weight: 700; color: ${t.color}; flex: 1">${t.name}${role}</span>
+                <span style="font-weight: 700">+${m.steps} ${m.steps === 1 ? 'stap' : 'stappen'}</span>
+              </div>`;
+            });
+          }
+          html += '</div>';
+          showRoundResultAndContinue(html, moves);
+        }
+      }, '✅ Stappen toekennen')
+    );
+    stage.appendChild(submit);
+  }
+
+  interval = setInterval(() => {
+    secondsLeft--;
+    fill.style.width = `${(secondsLeft / 30) * 100}%`;
+    timerNum.textContent = secondsLeft;
+    if (secondsLeft <= 0) endTimerPhase();
+  }, 1000);
+}
+
+/* ============================ DRAW =================================== */
+function renderDraw(stage) {
+  const word = pickFresh(DRAW_WORDS, "draw");
+  State.drawWord = word;
+  const t = State.teams[State.currentTeamIndex];
+  stage.innerHTML = '';
+  const banner = el('div', { class: 'team-banner' });
+  banner.appendChild(el('span', { class: 'team-banner-emoji' }, '🎨'));
+  const txt = el('div', { class: 'team-banner-text' });
+  txt.appendChild(document.createTextNode(`Een speler van ${t.name} mag tekenen`));
+  txt.appendChild(el('small', null, 'De andere teams moeten raden wat het is'));
+  banner.appendChild(txt);
+  stage.appendChild(banner);
+
+  const wordRevealBtn = el('button', {
+    class: 'btn btn-secondary',
+    onclick: () => beginDrawing(stage, word)
+  }, '👁️ Toon het woord aan de tekenaar');
+  stage.appendChild(el('div', { class: 'text-center' }, wordRevealBtn));
+  stage.appendChild(el('p', { class: 'hint text-center mt-4' }, 'Tip: de tekenaar bekijkt het woord en mag dan tekenen. De anderen mogen niet meekijken op het scherm tot het tekenen begint.'));
+}
+
+function beginDrawing(stage, word) {
+  // Show word in a popup-style overlay
+  if (!confirm(`Het woord is:\n\n${word}\n\nKlik OK als de tekenaar het heeft gezien en klaar is om te tekenen.`)) return;
+  stage.innerHTML = '';
+
+  stage.appendChild(el('p', { class: 'question-subtext text-center' }, '🎨 Teken het woord — de andere teams raden!'));
+
+  const canvas = el('canvas', { class: 'drawing-board', width: 800, height: 420 });
+  stage.appendChild(canvas);
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = 'white';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.lineWidth = 4;
+  ctx.strokeStyle = '#2D1B0E';
+  let drawing = false, lastX = 0, lastY = 0;
+  function getPos(e) {
+    const r = canvas.getBoundingClientRect();
+    const sx = canvas.width / r.width, sy = canvas.height / r.height;
+    if (e.touches && e.touches[0]) {
+      return [(e.touches[0].clientX - r.left) * sx, (e.touches[0].clientY - r.top) * sy];
+    }
+    return [(e.clientX - r.left) * sx, (e.clientY - r.top) * sy];
+  }
+  function start(e) { drawing = true; [lastX, lastY] = getPos(e); e.preventDefault(); }
+  function draw(e) {
+    if (!drawing) return;
+    const [x, y] = getPos(e);
+    ctx.beginPath(); ctx.moveTo(lastX, lastY); ctx.lineTo(x, y); ctx.stroke();
+    [lastX, lastY] = [x, y];
+    e.preventDefault();
+  }
+  function stop() { drawing = false; }
+  canvas.addEventListener('mousedown', start);
+  canvas.addEventListener('mousemove', draw);
+  canvas.addEventListener('mouseup', stop);
+  canvas.addEventListener('mouseleave', stop);
+  canvas.addEventListener('touchstart', start);
+  canvas.addEventListener('touchmove', draw);
+  canvas.addEventListener('touchend', stop);
+
+  // Color palette + size + clear
+  const colors = ['#2D1B0E','#C44536','#1B6F84','#FFB627','#7FB069','#F4538A','#FFFFFF'];
+  const controls = el('div', { class: 'draw-controls' });
+  colors.forEach((c, i) => {
+    const b = el('button', {
+      class: 'color-btn' + (i === 0 ? ' active' : ''),
+      style: `background: ${c}; ${c==='#FFFFFF' ? 'border: 3px solid #ccc' : ''}`,
+      onclick: () => {
+        ctx.strokeStyle = c;
+        ctx.lineWidth = c === '#FFFFFF' ? 22 : 4;
+        controls.querySelectorAll('.color-btn').forEach(x => x.classList.remove('active'));
+        b.classList.add('active');
+      }
+    });
+    controls.appendChild(b);
+  });
+  const clearBtn = el('button', {
+    class: 'btn btn-ghost', style: 'padding: 8px 16px',
+    onclick: () => { ctx.fillStyle = 'white'; ctx.fillRect(0, 0, canvas.width, canvas.height); }
+  }, 'Wis');
+  controls.appendChild(clearBtn);
+  stage.appendChild(controls);
+
+  // Timer 60 sec + reveal/winner buttons
+  let timeLeft = 90;
+  const timer = el('div', { class: 'display text-center', style: 'font-size: 28px; color: var(--terracotta); margin-top: 12px' }, `⏱️ ${timeLeft}s`);
+  stage.appendChild(timer);
+  const interval = setInterval(() => {
+    timeLeft--;
+    timer.textContent = `⏱️ ${timeLeft}s`;
+    if (timeLeft <= 0) clearInterval(interval);
+  }, 1000);
+
+  // Resolution: who guessed first?
+  const resolveCard = el('div', { class: 'card mt-4', style: 'background: var(--sand-50)' });
+  resolveCard.appendChild(el('h3', { style: 'margin-bottom: 8px' }, 'Wie heeft het geraden?'));
+  resolveCard.appendChild(el('p', { class: 'hint mb-4' }, 'Selecteer het team dat het eerst correct heeft geraden (zij krijgen +1, de tekenaar ook). Of klik op "Niemand".'));
+  const teamButtons = el('div', { style: 'display: flex; flex-wrap: wrap; gap: 8px' });
+  State.teams.forEach((t, idx) => {
+    if (idx === State.currentTeamIndex) return; // drawer's team can't guess itself
+    teamButtons.appendChild(el('button', {
+      class: 'btn btn-secondary',
+      style: `border-color: ${t.color}; color: ${t.color}`,
+      onclick: () => {
+        clearInterval(interval);
+        const guesser = idx;
+        const drawer = State.currentTeamIndex;
+        showRoundResultAndContinue(
+          `<div style="font-size: 50px">🎨</div>
+           <h2 style="font-family: Bricolage Grotesque; font-size: 28px">Het woord was <span class="text-pop">${word}</span></h2>
+           <p class="text-soft mt-2"><strong>${State.teams[guesser].name}</strong> raadde het — +1. Ook <strong>${State.teams[drawer].name}</strong> krijgt +1 voor het tekenen.</p>`,
+          [{ idx: guesser, steps: 1 }, { idx: drawer, steps: 1 }]
+        );
+      }
+    }, `${t.emoji} ${t.name}`));
+  });
+  teamButtons.appendChild(el('button', {
+    class: 'btn btn-ghost',
+    onclick: () => {
+      clearInterval(interval);
+      showRoundResultAndContinue(
+        `<div style="font-size: 50px">🤷</div>
+         <h2 style="font-family: Bricolage Grotesque; font-size: 28px">Niemand!</h2>
+         <p class="text-soft mt-2">Het woord was <strong>${word}</strong></p>`,
+        []
+      );
+    }
+  }, 'Niemand'));
+  resolveCard.appendChild(teamButtons);
+  stage.appendChild(resolveCard);
+}
+
+/* ============================== MAP ================================ */
+function renderMap(stage) {
+  // Pick a target from the user's difficulty bucket (with ±1 wiggle for variety)
+  const diff = State.difficulty;
+  const allowed = MAP_TARGETS.filter(t => Math.abs(t.d - diff) <= 1);
+  const pool = allowed.length ? allowed : MAP_TARGETS;
+  const target = pickFresh(pool, 'map');
+  State.mapAnswers = {};
+  stage.innerHTML = '';
+
+  const block = el('div', { class: 'question-block' });
+  block.appendChild(el('p', { class: 'question-subtext' }, 'Iedere team klikt om de beurt zo dicht mogelijk bij'));
+  block.appendChild(el('div', { class: 'question-text' }, `🛰️ ${target.name}`));
+  block.appendChild(el('p', { class: 'hint', style: 'margin-top: 8px' },
+    '👀 De klikken van andere teams blijven verborgen — niemand kan afkijken!'));
+  stage.appendChild(block);
+
+  // Layer toggle bar
+  const layerBar = el('div', { class: 'map-layer-bar' });
+  const satBtn = el('button', { class: 'map-layer-btn active', 'data-layer': 'sat' }, '🛰️ Satelliet');
+  const strBtn = el('button', { class: 'map-layer-btn', 'data-layer': 'street' }, '🗺️ Straat');
+  layerBar.appendChild(satBtn);
+  layerBar.appendChild(strBtn);
+  stage.appendChild(layerBar);
+
+  // Map div
+  const mapDiv = el('div', { id: 'worldMap' });
+  stage.appendChild(mapDiv);
+
+  // Status / turn indicator
+  const status = el('div', { class: 'text-center mt-4', style: 'font-weight: 700; font-size: 18px; min-height: 40px' });
+  stage.appendChild(status);
+
+  // Init Leaflet
+  setTimeout(() => {
+    if (typeof L === 'undefined') {
+      stage.appendChild(el('div', { class: 'card', style: 'text-align:center; padding: 20px' },
+        el('p', null, '⚠️ Leaflet kon niet geladen worden (geen internet?). Ronde wordt overgeslagen.')));
+      setTimeout(() => moveAndContinue([]), 2000);
+      return;
+    }
+    const map = L.map('worldMap', { worldCopyJump: true, minZoom: 1, attributionControl: false })
+                 .setView([20, 10], 2);
+
+    // Satellite tile layer (ESRI World Imagery — free, no auth, NO labels)
+    const satLayer = L.tileLayer(
+      'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+      { maxZoom: 18, attribution: 'Tiles © Esri' }
+    );
+    // Street layer (OSM) — has labels by default; that's intentional for "easy" mode
+    const streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap', maxZoom: 18
+    });
+
+    // Default to satellite (no labels — harder)
+    satLayer.addTo(map);
+    let useStreet = false;
+
+    satBtn.onclick = () => {
+      if (!useStreet) return;
+      map.removeLayer(streetLayer);
+      satLayer.addTo(map);
+      useStreet = false;
+      satBtn.classList.add('active');
+      strBtn.classList.remove('active');
+    };
+    strBtn.onclick = () => {
+      if (useStreet) return;
+      map.removeLayer(satLayer);
+      streetLayer.addTo(map);
+      useStreet = true;
+      strBtn.classList.add('active');
+      satBtn.classList.remove('active');
+    };
+
+    // Build a randomized turn order so the same team doesn't always go first
+    const turnOrder = shuffle(State.teams.map((_, i) => i));
+    let turnIdx = 0;
+    let turnTimerHandle = null;
+
+    function showTurn() {
+      if (turnTimerHandle) { clearInterval(turnTimerHandle); turnTimerHandle = null; }
+      if (turnIdx >= turnOrder.length) {
+        // ===== REVEAL =====
+        // Drop target marker
+        const targetMarker = L.marker([target.lat, target.lng], {
+          icon: L.divIcon({
+            html: '<div style="font-size:32px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.6))">🎯</div>',
+            className: '', iconSize: [32, 32], iconAnchor: [16, 16]
+          })
+        }).addTo(map);
+        targetMarker.bindPopup(`<strong>${target.name}</strong>`).openPopup();
+
+        // Show ALL team clicks at once (this is the moment of truth)
+        const results = State.teams.map((t, idx) => {
+          const a = State.mapAnswers[idx];
+          const d = haversine(a.lat, a.lng, target.lat, target.lng);
+          return { idx, dist: d, name: t.name, emoji: t.emoji, color: t.color, lat: a.lat, lng: a.lng };
+        }).sort((a, b) => a.dist - b.dist);
+
+        results.forEach(r => {
+          // Marker
+          L.marker([r.lat, r.lng], {
+            icon: L.divIcon({
+              html: `<div style="background:${r.color};color:white;padding:5px 10px;border-radius:999px;font-weight:700;font-size:12px;white-space:nowrap;box-shadow:0 3px 8px rgba(0,0,0,0.4);border:2px solid white">${r.emoji} ${r.name}</div>`,
+              className: '', iconSize: [140, 26], iconAnchor: [70, 13]
+            })
+          }).addTo(map);
+          // Line to target
+          L.polyline([[r.lat, r.lng], [target.lat, target.lng]], {
+            color: r.color, weight: 2.5, dashArray: '6,8'
+          }).addTo(map);
+        });
+
+        // Auto-fit bounds so all markers visible
+        const bounds = L.latLngBounds([
+          [target.lat, target.lng],
+          ...results.map(r => [r.lat, r.lng])
+        ]);
+        map.fitBounds(bounds.pad(0.25));
+
+        status.innerHTML = '';
+        const reveal = el('button', {
+          class: 'btn btn-primary btn-large',
+          onclick: () => {
+            const minD = results[0].dist;
+            const winners = results.filter(r => r.dist === minD);
+            const runnerD = results.find(r => r.dist > minD)?.dist;
+            const runners = runnerD !== undefined ? results.filter(r => r.dist === runnerD) : [];
+            const moves = [];
+            winners.forEach(w => moves.push({ idx: w.idx, steps: 2 }));
+            if (winners.length === 1) runners.forEach(r => moves.push({ idx: r.idx, steps: 1 }));
+            let html = `<div style="font-size: 56px">🎯</div><h2 style="font-family: Bricolage Grotesque; font-size: 28px; margin: 8px 0 4px">Het was <span class="text-pop">${target.name}</span></h2>`;
+            html += '<div style="margin-top: 18px; text-align: left; max-width: 520px; margin: 18px auto 0">';
+            results.forEach((r) => {
+              const isW = r.dist === minD;
+              const isR = winners.length === 1 && runnerD !== undefined && r.dist === runnerD;
+              const trophy = isW ? '🏆 +2' : (isR ? '🥈 +1' : '');
+              html += `<div class="result-row ${isW ? 'winner' : ''}">
+                <span style="font-size: 24px">${r.emoji}</span>
+                <span style="font-weight: 700; color: ${r.color}; flex: 1">${r.name}</span>
+                <span style="font-variant-numeric: tabular-nums">${Math.round(r.dist)} km</span>
+                <span style="font-weight: 700; min-width: 60px; text-align: right">${trophy}</span>
+              </div>`;
+            });
+            html += '</div>';
+            showRoundResultAndContinue(html, moves);
+          }
+        }, '🏁 Naar de uitslag');
+        status.appendChild(reveal);
+        return;
+      }
+      const teamIdx = turnOrder[turnIdx];
+      const t = State.teams[teamIdx];
+      status.innerHTML = '';
+
+      // Privacy curtain — shown until team clicks "Klaar, ik kijk!" so others can look away
+      const curtain = el('div', { class: 'privacy-curtain' });
+      curtain.appendChild(el('div', { class: 'curtain-emoji' }, t.emoji));
+      curtain.appendChild(el('div', { class: 'curtain-name', style: `color: ${t.color}` }, `${t.name}`));
+      curtain.appendChild(el('div', { class: 'curtain-msg' }, 'Anderen → kijk weg!'));
+      const goBtn = el('button', {
+        class: 'btn btn-primary btn-large',
+        onclick: () => {
+          curtain.remove();
+          startClickTimer();
+        }
+      }, '👀 Ik ben klaar, toon de kaart');
+      curtain.appendChild(goBtn);
+      status.appendChild(curtain);
+
+      function startClickTimer() {
+        // 30 seconds to click
+        let timeLeft = 30;
+        status.innerHTML = '';
+        const turn = el('div', {
+          class: 'map-turn-indicator',
+          style: `background: ${t.color}15; border: 2px solid ${t.color}55`
+        });
+        turn.appendChild(el('span', { style: 'font-size: 24px' }, t.emoji));
+        turn.appendChild(el('span', { style: `color: ${t.color}; font-weight: 700` }, `${t.name} → klik op de kaart!`));
+        const timerCh = el('span', { class: 'turn-timer' }, `${timeLeft}s`);
+        turn.appendChild(timerCh);
+        status.appendChild(turn);
+
+        turnTimerHandle = setInterval(() => {
+          timeLeft--;
+          timerCh.textContent = `${timeLeft}s`;
+          if (timeLeft <= 5) timerCh.classList.add('urgent');
+          if (timeLeft <= 0) {
+            clearInterval(turnTimerHandle);
+            turnTimerHandle = null;
+            // Auto-pick: random faraway point (Antarctica)
+            State.mapAnswers[teamIdx] = { lat: -85 + Math.random()*4, lng: -180 + Math.random()*360 };
+            turnIdx++;
+            showTurn();
+          }
+        }, 1000);
+      }
+    }
+
+    map.on('click', (e) => {
+      if (turnIdx >= turnOrder.length) return;
+      // Don't accept clicks until the curtain is dismissed and timer is running
+      if (!turnTimerHandle) return;
+      const teamIdx = turnOrder[turnIdx];
+      // Store the click but do NOT show a marker — keep it secret
+      State.mapAnswers[teamIdx] = { lat: e.latlng.lat, lng: e.latlng.lng };
+      // Flash a brief confirmation circle that fades quickly
+      const ghostIcon = L.divIcon({
+        html: `<div class="map-click-ghost"></div>`,
+        className: '', iconSize: [24, 24], iconAnchor: [12, 12]
+      });
+      const ghost = L.marker([e.latlng.lat, e.latlng.lng], { icon: ghostIcon, interactive: false }).addTo(map);
+      setTimeout(() => map.removeLayer(ghost), 700);
+
+      clearInterval(turnTimerHandle);
+      turnTimerHandle = null;
+      turnIdx++;
+      showTurn();
+    });
+    showTurn();
+  }, 50);
+}
+
+function haversine(lat1, lon1, lat2, lon2) {
+  const toRad = (d) => d * Math.PI / 180;
+  const R = 6371; // km
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon/2)**2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
+
+/* ========================= POPULARITY =============================== */
+// Uses Wikimedia REST Pageviews API — free, no auth, CORS-friendly, updated daily.
+// Endpoint: /metrics/pageviews/per-article/{project}/all-access/all-agents/{title}/daily/{start}/{end}
+function getLast30DaysRange() {
+  const now = new Date();
+  // End: yesterday (last full day with data)
+  const end = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+  // Start: 30 days before end
+  const start = new Date(end.getFullYear(), end.getMonth(), end.getDate() - 29);
+  const fmt = (d) => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}${m}${day}`;
+  };
+  return { start: fmt(start), end: fmt(end) };
+}
+
+async function fetchWikiViews(article) {
+  const { start, end } = getLast30DaysRange();
+  const encoded = encodeURIComponent(article);
+  const url = `https://wikimedia.org/api/rest_v1/metrics/pageviews/per-article/nl.wikipedia/all-access/all-agents/${encoded}/daily/${start}/${end}`;
+  try {
+    const r = await fetch(url);
+    if (!r.ok) return null;
+    const data = await r.json();
+    if (!data.items || !data.items.length) return null;
+    return data.items.reduce((sum, item) => sum + (item.views || 0), 0);
+  } catch (e) {
+    console.warn('wiki views fail for', article, e);
+    return null;
+  }
+}
+
+async function renderPopularity(stage) {
+  const quiz = pickFresh(POPULARITY_QUIZZES, "pop");
+  // Ensure we have enough options for all teams (each team picks unique)
+  const teamCount = State.teams.length;
+  const optionPool = quiz.options.slice();
+  if (optionPool.length < teamCount) {
+    // Not enough options — fall back to skipping
+    stage.innerHTML = '';
+    stage.appendChild(el('div', { class: 'card', style: 'text-align:center; padding: 20px' },
+      el('p', null, 'Niet genoeg opties voor deze ronde — wordt overgeslagen.')));
+    setTimeout(() => moveAndContinue([]), 1200);
+    return;
+  }
+  State.popAnswers = {};
+  stage.innerHTML = '';
+
+  const block = el('div', { class: 'question-block' });
+  block.appendChild(el('p', { class: 'question-subtext' }, quiz.category));
+  block.appendChild(el('div', { class: 'question-text' }, `🔥 ${quiz.question}`));
+  block.appendChild(el('p', { class: 'hint', style: 'margin-top: 6px' },
+    'Iedere team kiest een ander onderwerp. Wie wie heeft is geheim — je ziet alleen wat al gekozen is. Daarna halen we de échte pageviews op van Wikipedia. Meeste hits = winnaar.'));
+  stage.appendChild(block);
+
+  const host = el('div', { id: 'popHost' });
+  stage.appendChild(host);
+
+  // Random turn order
+  const turnOrder = shuffle(State.teams.map((_, i) => i));
+  let turnIdx = 0;
+  let timer = null;
+
+  function showCurtain() {
+    if (timer) { clearInterval(timer); timer = null; }
+    host.innerHTML = '';
+    if (turnIdx >= turnOrder.length) {
+      revealPopularity();
+      return;
+    }
+    const teamIdx = turnOrder[turnIdx];
+    const t = State.teams[teamIdx];
+
+    const curtain = el('div', { class: 'privacy-curtain' });
+    curtain.appendChild(el('div', { class: 'curtain-emoji' }, t.emoji));
+    curtain.appendChild(el('div', { class: 'curtain-name', style: `color: ${t.color}` }, `${t.name}`));
+    curtain.appendChild(el('div', { class: 'curtain-msg' }, 'Anderen → kijk weg!'));
+    curtain.appendChild(el('button', {
+      class: 'btn btn-primary btn-large',
+      onclick: () => { curtain.remove(); showPicker(teamIdx, t); }
+    }, '🔥 Ik mag kiezen'));
+    host.appendChild(curtain);
+  }
+
+  function showPicker(teamIdx, t) {
+    host.innerHTML = '';
+    const head = el('div', {
+      class: 'pop-team-head',
+      style: `background: ${t.color}; color: white`
+    });
+    head.appendChild(el('span', { style: 'font-size: 22px' }, t.emoji));
+    head.appendChild(el('span', { style: 'font-weight: 700; flex: 1' }, `${t.name} — kies een onderwerp`));
+    const timerCh = el('span', { class: 'turn-timer slider-timer' }, '20s');
+    head.appendChild(timerCh);
+    host.appendChild(head);
+
+    const grid = el('div', { class: 'pop-grid' });
+    quiz.options.forEach((opt, i) => {
+      const isTaken = Object.values(State.popAnswers).includes(i);
+      const btn = el('button', {
+        class: 'pop-option' + (isTaken ? ' picked' : ''),
+        disabled: isTaken,
+        onclick: () => {
+          if (isTaken) return;
+          State.popAnswers[teamIdx] = i;
+          clearInterval(timer);
+          turnIdx++;
+          showCurtain();
+        }
+      });
+      btn.appendChild(el('span', { class: 'pop-option-label' }, opt.label));
+      if (isTaken) {
+        // Don't show WHICH team — just generic "al gekozen"
+        const tag = el('span', { class: 'pop-option-tag', style: 'background: #888' }, '🔒 al gekozen');
+        btn.appendChild(tag);
+      }
+      grid.appendChild(btn);
+    });
+    host.appendChild(grid);
+
+    // 20-second timer
+    let timeLeft = 20;
+    timer = setInterval(() => {
+      timeLeft--;
+      timerCh.textContent = `${timeLeft}s`;
+      if (timeLeft <= 5) timerCh.classList.add('urgent');
+      if (timeLeft <= 0) {
+        clearInterval(timer);
+        // Auto-pick: first available
+        const available = quiz.options.findIndex((_, i) => !Object.values(State.popAnswers).includes(i));
+        if (available >= 0) State.popAnswers[teamIdx] = available;
+        turnIdx++;
+        showCurtain();
+      }
+    }, 1000);
+  }
+
+  showCurtain();
+
+  async function revealPopularity() {
+    host.innerHTML = '';
+    const loader = el('div', { class: 'pop-loader' });
+    loader.appendChild(el('div', { class: 'pop-spinner' }));
+    loader.appendChild(el('div', null, '🔌 Wikipedia pageviews ophalen — even geduld…'));
+    host.appendChild(loader);
+
+    // Fetch all in parallel
+    const picks = Object.entries(State.popAnswers).map(([teamIdx, optIdx]) => ({
+      teamIdx: +teamIdx,
+      option: quiz.options[optIdx]
+    }));
+    const viewPromises = picks.map(p => fetchWikiViews(p.option.article));
+    const views = await Promise.all(viewPromises);
+
+    // If ALL failed (no internet), bail
+    if (views.every(v => v === null)) {
+      host.innerHTML = '';
+      host.appendChild(el('div', { class: 'card', style: 'text-align:center; padding: 20px' },
+        el('p', null, '⚠️ Geen verbinding met Wikipedia. Ronde wordt overgeslagen.')));
+      setTimeout(() => moveAndContinue([]), 2200);
+      return;
+    }
+
+    const results = picks.map((p, i) => ({
+      teamIdx: p.teamIdx,
+      team: State.teams[p.teamIdx],
+      label: p.option.label,
+      views: views[i] // may be null
+    })).sort((a, b) => (b.views ?? -1) - (a.views ?? -1));
+
+    // Award: +3 winner, +2 second, +1 third (skipping nulls)
+    const valid = results.filter(r => r.views !== null);
+    const moves = [];
+    if (valid[0]) moves.push({ idx: valid[0].teamIdx, steps: 3 });
+    if (valid[1]) moves.push({ idx: valid[1].teamIdx, steps: 2 });
+    if (valid[2] && teamCount > 2) moves.push({ idx: valid[2].teamIdx, steps: 1 });
+
+    let html = `<div style="font-size: 56px">🔥</div>
+      <h2 class="display" style="font-size: 28px; margin: 8px 0 4px">${quiz.category}</h2>
+      <p class="text-soft" style="margin-bottom: 14px">Wikipedia-bezoeken (afgelopen 30 dagen, NL Wikipedia)</p>
+      <div style="margin-top: 8px; max-width: 600px; margin: 14px auto 0; text-align: left">`;
+    results.forEach((r, i) => {
+      const isWin = i === 0 && r.views !== null;
+      const trophy = i === 0 ? '🏆 +3' : (i === 1 ? '🥈 +2' : (i === 2 && teamCount > 2 ? '🥉 +1' : ''));
+      const viewsTxt = r.views === null ? 'geen data' : r.views.toLocaleString('nl-NL');
+      html += `<div class="result-row ${isWin ? 'winner' : ''}">
+        <span style="font-size: 22px">${r.team.emoji}</span>
+        <div style="flex: 1; line-height: 1.3">
+          <div style="font-weight: 700; color: ${r.team.color}">${r.team.name}</div>
+          <div style="font-size: 13px; color: var(--ink-soft)">koos: ${r.label}</div>
+        </div>
+        <div style="text-align: right; min-width: 110px">
+          <div style="font-variant-numeric: tabular-nums; font-weight: 700">${viewsTxt}</div>
+          <div style="font-size: 11px; color: var(--ink-soft)">bezoeken</div>
+        </div>
+        <span style="font-weight: 700; min-width: 56px; text-align: right">${trophy}</span>
+      </div>`;
+    });
+    html += `</div>
+      <p class="hint" style="margin-top: 14px; font-size: 11px">Bron: Wikimedia REST Pageviews API (live)</p>`;
+    showRoundResultAndContinue(html, moves);
+  }
+}
+
+/* ============================ RANKING =============================== */
+function renderRanking(stage) {
+  const ranking = pickFresh(RANKINGS, "rank");
+  const team = State.teams[State.currentTeamIndex];
+  // The 'items' array is in correct order. Shuffle for presentation.
+  const correctOrder = ranking.items.map(it => it.name);
+  const shuffled = shuffle(correctOrder.slice());
+  // Make sure shuffle isn't accidentally same as correct
+  while (shuffled.every((s, i) => s === correctOrder[i])) shuffled.reverse();
+
+  // User's ordering: array of indices into `shuffled` representing placement positions
+  let clickOrder = [];
+  let timer = null;
+
+  stage.innerHTML = '';
+  // Privacy curtain first
+  const curtain = el('div', { class: 'privacy-curtain' });
+  curtain.appendChild(el('div', { class: 'curtain-emoji' }, team.emoji));
+  curtain.appendChild(el('div', { class: 'curtain-name', style: `color: ${team.color}` }, `${team.name}`));
+  curtain.appendChild(el('div', { class: 'curtain-msg' }, `Klaar voor de ranglijst?`));
+  curtain.appendChild(el('p', { class: 'hint', style: 'margin-top: 10px' }, `📊 ${ranking.category} — je krijgt 90 seconden`));
+  curtain.appendChild(el('button', {
+    class: 'btn btn-primary btn-large',
+    onclick: () => { curtain.remove(); buildRanking(); }
+  }, '📊 Start ranglijst'));
+  stage.appendChild(curtain);
+
+  function buildRanking() {
+    // Team banner with timer
+    const banner = el('div', { class: 'team-banner' });
+    banner.appendChild(el('span', { class: 'team-banner-emoji' }, team.emoji));
+    const txt = el('div', { class: 'team-banner-text' });
+    txt.appendChild(document.createTextNode(`${team.name} • Ranglijst: ${ranking.category}`));
+    txt.appendChild(el('small', null, `Klik in volgorde — elk juist geplaatste positie = +1 stap`));
+    banner.appendChild(txt);
+    const timerCh = el('span', { class: 'turn-timer rank-timer' }, '90s');
+    banner.appendChild(timerCh);
+    stage.appendChild(banner);
+
+    const block = el('div', { class: 'question-block' });
+    block.appendChild(el('p', { class: 'question-subtext' }, 'Rangschik van #1 (hoogst) naar #5 (laagst):'));
+    block.appendChild(el('div', { class: 'question-text', style: 'font-size: 22px' }, `📊 ${ranking.criterion}`));
+    stage.appendChild(block);
+
+    // Two-column layout
+    const wrap = el('div', { class: 'rank-wrap' });
+
+    const optionsCol = el('div', { class: 'rank-options' });
+    const slotsCol = el('div', { class: 'rank-slots' });
+    slotsCol.appendChild(el('h4', { style: 'margin-bottom: 8px; color: var(--ink-soft); font-size: 13px; text-transform: uppercase; letter-spacing: 0.06em' }, 'Jouw ranglijst'));
+
+    function redraw() {
+      optionsCol.innerHTML = '';
+      optionsCol.appendChild(el('h4', { style: 'margin-bottom: 8px; color: var(--ink-soft); font-size: 13px; text-transform: uppercase; letter-spacing: 0.06em' }, 'Beschikbaar'));
+      shuffled.forEach((name, i) => {
+        const placed = clickOrder.includes(i);
+        const btn = el('button', {
+          class: 'rank-option' + (placed ? ' placed' : ''),
+          disabled: placed,
+          onclick: () => {
+            if (clickOrder.length >= 5) return;
+            clickOrder.push(i);
+            redraw();
+          }
+        }, name);
+        optionsCol.appendChild(btn);
+      });
+
+      const slotsList = slotsCol.querySelector('.rank-slots-list') || el('div', { class: 'rank-slots-list' });
+      slotsList.innerHTML = '';
+      for (let pos = 0; pos < 5; pos++) {
+        const slot = el('div', { class: 'rank-slot' });
+        slot.appendChild(el('span', { class: 'rank-pos' }, `#${pos + 1}`));
+        if (clickOrder[pos] !== undefined) {
+          const name = shuffled[clickOrder[pos]];
+          slot.appendChild(el('span', { class: 'rank-slot-name' }, name));
+          slot.appendChild(el('button', {
+            class: 'rank-slot-undo',
+            onclick: () => {
+              clickOrder = clickOrder.slice(0, pos);
+              redraw();
+            }
+          }, '↺'));
+        } else {
+          slot.appendChild(el('span', { class: 'rank-slot-empty' }, '—'));
+        }
+        slotsList.appendChild(slot);
+      }
+      if (!slotsCol.querySelector('.rank-slots-list')) slotsCol.appendChild(slotsList);
+    }
+    redraw();
+
+    wrap.appendChild(optionsCol);
+    wrap.appendChild(slotsCol);
+    stage.appendChild(wrap);
+
+    // Submit
+    function submitRanking() {
+      if (timer) { clearInterval(timer); timer = null; }
+      // Score: number of positions where user's pick equals correct
+      const userOrder = clickOrder.map(i => shuffled[i]);
+      let correctCount = 0;
+      userOrder.forEach((name, pos) => {
+        if (name === correctOrder[pos]) correctCount++;
+      });
+
+      let html = `<div style="font-size: 56px">${team.emoji}</div>
+        <h2 class="display" style="font-size: 28px; margin: 8px 0 4px">${team.name} → ${correctCount}/5 juist</h2>
+        <p class="text-soft" style="margin-bottom: 14px">${ranking.criterion}</p>
+        <div style="margin-top: 12px; max-width: 580px; margin: 12px auto 0; text-align: left">`;
+      correctOrder.forEach((name, pos) => {
+        const userName = userOrder[pos];
+        const isRight = userName === name;
+        const item = ranking.items[pos];
+        html += `<div class="result-row ${isRight ? 'winner' : ''}">
+          <span style="font-weight: 700; font-size: 16px; min-width: 32px; color: var(--terracotta)">#${pos + 1}</span>
+          <div style="flex: 1; line-height: 1.3">
+            <div style="font-weight: 700">${name}</div>
+            <div style="font-size: 12px; color: var(--ink-soft)">${item.value}</div>
+          </div>
+          <span style="font-weight: 600; font-size: 13px; color: ${isRight ? 'var(--green)' : 'var(--terracotta)'}; min-width: 110px; text-align: right">
+            ${isRight ? '✓ jij ook' : (userName ? `jij: ${userName}` : 'leeg gelaten')}
+          </span>
+        </div>`;
+      });
+      html += `</div>
+        <p style="margin-top: 14px; font-weight: 700; font-size: 18px">
+          ${correctCount === 0 ? 'Helaas — geen stap.'
+          : correctCount === 5 ? '🎉 Perfect! +5 stappen!'
+          : `Goed bezig — +${correctCount} ${correctCount === 1 ? 'stap' : 'stappen'}.`}
+        </p>`;
+      const moves = correctCount > 0 ? [{ idx: State.currentTeamIndex, steps: correctCount }] : [];
+      showRoundResultAndContinue(html, moves);
+    }
+
+    const submit = el('div', { class: 'text-center mt-4' });
+    const submitBtn = el('button', {
+      class: 'btn btn-primary btn-large',
+      onclick: () => {
+        if (clickOrder.length < 5) {
+          // Allow early submit but warn
+          if (!confirm('Je hebt nog niet alle posities gevuld. Toch indienen?')) return;
+        }
+        submitRanking();
+      }
+    }, '✅ Klaar — check de ranglijst');
+    submit.appendChild(submitBtn);
+    stage.appendChild(submit);
+
+    // 90-second timer; auto-submit on expire
+    let timeLeft = 90;
+    timer = setInterval(() => {
+      timeLeft--;
+      timerCh.textContent = `${timeLeft}s`;
+      if (timeLeft <= 10) timerCh.classList.add('urgent');
+      if (timeLeft <= 0) {
+        clearInterval(timer);
+        submitRanking();
+      }
+    }, 1000);
+  }
+}
+
+/* ========================== GAME OVER =============================== */
+function showGameOver(winner) {
+  State.screen = 'gameOver';
+  const container = el('div', { class: 'winner-screen fade-in' });
+  container.appendChild(el('div', { class: 'trophy-emoji' }, '🏆'));
+  container.appendChild(el('div', { class: 'handwritten', style: 'font-size: 32px; color: var(--ink-soft); margin-bottom: 8px' }, 'En de winnaar is...'));
+  container.appendChild(el('div', { class: 'winner-name pop-in' }, `${winner.emoji} ${winner.name}`));
+  container.appendChild(el('p', { class: 'hint mt-4' }, `na ${State.roundNumber} ${State.roundNumber === 1 ? 'ronde' : 'rondes'} hard rennen door de woestijn`));
+
+  // Final standings
+  const standings = el('div', { class: 'card mt-6', style: 'max-width: 540px; margin: 24px auto 0; text-align: left' });
+  standings.appendChild(el('h3', { style: 'text-align: center; margin-bottom: 12px' }, '🏁 Eindstand'));
+  const sorted = State.teams.slice().sort((a, b) => b.position - a.position);
+  sorted.forEach((t, i) => {
+    const row = el('div', { class: 'result-row ' + (i === 0 ? 'winner' : '') });
+    row.appendChild(el('span', { style: 'font-size: 22px; min-width: 24px' }, ['🥇','🥈','🥉','4','5','6','7','8'][i] || (i + 1)));
+    row.appendChild(el('span', { style: 'font-size: 24px' }, t.emoji));
+    row.appendChild(el('span', { style: `font-weight: 700; color: ${t.color}; flex: 1` }, t.name));
+    row.appendChild(el('span', { style: 'font-weight: 700' }, `${t.position} stappen`));
+    standings.appendChild(row);
+  });
+  container.appendChild(standings);
+
+  const btnRow = el('div', { class: 'flex justify-center gap-3 mt-6', style: 'flex-wrap: wrap' });
+  btnRow.appendChild(el('button', {
+    class: 'btn btn-primary btn-large',
+    onclick: () => {
+      State.teams.forEach(t => t.position = 0);
+      State.roundNumber = 0;
+      State.history = [];
+      State.roundQueue = buildRoundQueue();
+      startNextRound();
+    }
+  }, '🔁 Nog een potje!'));
+  btnRow.appendChild(el('button', {
+    class: 'btn btn-secondary btn-large',
+    onclick: () => { State.teams = []; renderSetup(); }
+  }, '⚙️ Nieuwe setup'));
+  container.appendChild(btnRow);
+
+  render(container);
+
+  // Confetti!
+  if (window.confetti) {
+    const duration = 3000;
+    const end = Date.now() + duration;
+    (function frame() {
+      confetti({ particleCount: 4, angle: 60, spread: 55, origin: { x: 0 }, colors: ['#C44536','#FFB627','#7FB069','#F4538A','#1B6F84'] });
+      confetti({ particleCount: 4, angle: 120, spread: 55, origin: { x: 1 }, colors: ['#C44536','#FFB627','#7FB069','#F4538A','#1B6F84'] });
+      if (Date.now() < end) requestAnimationFrame(frame);
+    })();
+  }
+}
+
+/* =========================== INIT ================================== */
+renderSetup();
+
+</script>
+</body>
+</html>
